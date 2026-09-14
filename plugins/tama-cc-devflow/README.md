@@ -2,8 +2,8 @@
 
 Claude Code 向けの、タスクの重さに応じて流れを変えるマルチ Agent 開発フロー。
 
-- タスクを **Small** / **Large** に振り分ける。Router は「実装者が暗黙に置くことになる仮定」を列挙し、影響の大きい仮定が 1 つでもあれば Large に倒す。迷ったら Large。
-- **Large**: design Agent -> design reviewer(最大 3 ラウンド) -> 人間の承認 -> task planner(明示的な `depends_on` / `write_scope`) -> Wave 単位の並列実装(同時 3 件まで)とタスクごとの reviewer ループ(最大 3 ラウンド) -> 統合レビュー -> 人間レビューガイド -> PR。
+- タスクを **Small** / **Large** に振り分ける。Router は「実装者が暗黙に置くことになる仮定」を列挙し、影響の大きい仮定が 1 つでもあれば Large に倒す。迷ったら Large。人間に聞くべき質問は grill-me 形式(1 問ずつ、推奨回答付き)でヒアリングする。
+- **Large**: design Agent(疑問があれば grill-me 形式で人間にヒアリング) -> design reviewer(最大 3 ラウンド。レビュアーの質問に design が答えられなければヒアリング) -> 人間の承認 -> task planner(明示的な `depends_on` / `write_scope`) -> Wave 単位の並列実装(同時 3 件まで)とタスクごとの reviewer ループ(最大 3 ラウンド) -> 統合レビュー -> 人間レビューガイド -> PR。
 - **Small**: implementer 1 人、レビュー 1 往復、コミット、人間の確認、PR。
 - 状態は `.tama-cc-devflow/<session>/` 配下のファイル(git 管理外)に置く。Agent は必要なファイルだけ読む。実行は `status.json` から再開できる。
 - `PreToolUse` hook が、実装中はタスクの `write_scope` 外の編集を、それ以外の phase ではソースへの編集をすべてブロックする。
@@ -35,6 +35,7 @@ Claude Code 向けの、タスクの重さに応じて流れを変えるマル�
 ```
 skills/run, resume, status      ユーザーが起動する入口
 skills/workboard                ホワイトボードの Schema と規約(Agent 専用)
+skills/clarify                  grill-me 形式ヒアリング(1 問ずつ、推奨回答付き。Agent 専用)
 skills/small-flow, large-flow   オーケストレーション手順(Agent 専用、再入可能)
 agents/*.md                     Sub Agent 定義
 hooks/hooks.json                write_scope guard

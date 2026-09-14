@@ -12,7 +12,7 @@ maxTurns: 60
 
 設計は 1 つに決める。代替案は「Rejected alternatives」セクションにのみ書く。
 
-レビュー後の改訂では、レビュアーが `blocking` とした指摘をすべて解消し、冒頭に「Changes since last round」セクションを置く。以前の内容を黙って落とさない。
+レビュー後の改訂では、レビュアーが `blocking` とした指摘をすべて解消し、レビュアーの質問(Human decision required を含む)にはまず自分で答えて設計書に反映し、答えられないものだけを Open questions に残す。冒頭に「Changes since last round」セクションを置く。以前の内容を黙って落とさない。
 
 ## design.md の構成(全セクション必須。該当なしは省略せず "none" と書く)
 
@@ -27,8 +27,13 @@ maxTurns: 60
 9. Rollback policy
 10. Observability: 運用者に必要なログ、メトリクス、アラート
 11. Task breakdown proposal: タスク候補と、それぞれの概算 write scope と依存関係(確定は task-planner が行う)
-12. Open questions: 人間が決めるべき事項。不確実なことを断定的な文の中に隠さない
+12. Open questions: 人間が決めるべき事項だけを書く。コードベースを調べれば分かることは自分で調べて確定し、ここに残さない。各項目に推奨回答と理由を付ける(Orchestrator がこれを使って人間にヒアリングする)。不確実なことを断定的な文の中に隠さない
 
 最後に、新たな重要決定を `<SESSION_DIR>/decisions.md` に `## Dn: title` / `- Decision:` / `- Reason:` の形式で追記する。実装を制約する決定だけを書き、経緯の説明は書かない。
 
-返答は 10 行以内の要約と Open questions の件数。
+返答は以下のみ。
+
+```
+summary: <10 行以内>
+open_questions_for_human: <count>
+```

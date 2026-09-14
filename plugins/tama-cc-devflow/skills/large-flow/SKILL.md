@@ -10,11 +10,15 @@ user-invocable: false
 
 ## A. 設計(phase: design / design_review)
 
+設計中に人間の判断が必要な疑問が出たら、その場で grill-me 形式のヒアリング(Skill `tama-cc-devflow:clarify`)を行う。設計レビュー後にレビュアーから出た質問も、まず design Agent が答え、答えられないものや人間の判断が必要とされたものをヒアリングする。
+
 1. `status.py set phase '"design"'`。`tama-cc-devflow:design` を呼ぶ。
-2. `status.py set phase '"design_review"'`。`N = review_rounds.design + 1` とし、`status.py set review_rounds.design N`。`tama-cc-devflow:design-reviewer` を `ROUND=N` で呼ぶ。
-3. `verdict: FAIL` かつ `N < 3`: ステップ 1 へ戻る(design Agent が `reviews/design-r<N>.md` を読む)。
-4. `verdict: FAIL` かつ `N == 3`: ループを止める。`reviews/design-r3.md` を読み、未解決の blocking 指摘、設計者とレビュアーの争点、影響範囲、人間が決めるべきことを提示する。選択肢を尋ねる: 人間の具体的な指示付きで改訂する(`design/human-feedback.md` に書き、`review_rounds.design` を 0 に戻してステップ 1 へ)、現状の設計を受け入れる、中止する。待つ。
-5. PASS、またはレビュアーが `human_decision_required: yes` を報告した場合は B へ進む。
+2. design の返答の `open_questions_for_human > 0` の場合: Skill `tama-cc-devflow:clarify` を `design/design.md` の Open questions(人間の判断が必要なもの)を入力として実行する。全問解消後、ステップ 1 に戻って design に改訂させる(design は context.md の Clarifications と decisions.md を読む)。`open_questions_for_human == 0` になるまで繰り返す。
+3. `status.py set phase '"design_review"'`。`N = review_rounds.design + 1` とし、`status.py set review_rounds.design N`。`tama-cc-devflow:design-reviewer` を `ROUND=N` で呼ぶ。
+4. レビュアーが `human_decision_required: yes` を返した場合(PASS / FAIL を問わず): ステップ 1 に戻り、design にレビューの質問へ回答させる。design は自分で答えられるものは設計書に反映し、答えられないものを Open questions に残す。以降はステップ 2 のルールでヒアリングし、改訂後にステップ 3 でレビューし直す。この経路の再レビューは FAIL ループではないため `review_rounds.design` を増やさない(ステップ 3 の加算を省く)。
+5. `verdict: FAIL` かつ `N < 3`: ステップ 1 へ戻る(design が `reviews/design-r<N>.md` を読む)。
+6. `verdict: FAIL` かつ `N == 3`: ループを止める。`reviews/design-r3.md` の未解決 blocking 指摘と設計者・レビュアーの争点を、Skill `tama-cc-devflow:clarify` で 1 問ずつ人間に確認する(各争点に推奨する落とし所を付ける)。解消した内容を `design/human-feedback.md` に書き、`review_rounds.design` を 0 に戻してステップ 1 へ。争点がヒアリングで解消しない場合のみ、現状の設計を受け入れるか中止するかを尋ねる。待つ。
+7. `verdict: PASS` かつ `human_decision_required: no` で B へ進む。
 
 ## B. 人間の設計承認(phase: design_approval)
 
@@ -24,7 +28,7 @@ user-invocable: false
 - インターフェース / データの変更
 - 異常系とロールバックの方針
 - タスク分解案と依存関係
-- 設計とレビュアーからの Open questions
+- 残っている Open questions(通常は A で解消済みのため空)
 - 全文の場所: `SESSION_DIR/design/design.md`
 
 approve / request changes / abort を尋ね、待つ。「request changes」の場合、フィードバックを `design/human-feedback.md` に書き、人間が下した決定を `decisions.md` に記録し、A.1 へ戻る。approve の場合、`decisions.md` に `## Dn: Design approved` を日付付きで記録する。
@@ -51,7 +55,7 @@ approve / request changes / abort を尋ね、待つ。「request changes」の�
    - `design_break: partial-redesign` -> `status.py set tasks.<id>.design_break '"partial-redesign"'`、`status.py task <id> blocked`。依存タスクは開始しない。独立した他のタスクは続行し、その後ステップ 6 へ。
    - `design_break: full-redesign` -> タスクを `blocked` にし、`design_break` を設定し、実行中のタスクが返り次第ステップ 6 へ。
 5. ステップ 1 へ。
-6. 停止条件。人間に尋ねる前に、状況を `decisions.md` または `abort.md` に記録する。その上で:
+6. 停止条件。人間に尋ねる前に、状況を `decisions.md` または `abort.md` に記録する。判断材料が不足している争点(なぜ blocking が解消しないか、どの前提が崩れたか)は、選択肢を提示する前に Skill `tama-cc-devflow:clarify` で 1 問ずつ確認する。その上で:
    - レビュー上限による block: 未解決の指摘、blocking / non-blocking、リスク、推奨アクションを提示する。選択肢: 人間が直して done にする(人間の宣言後に `status.py task <id> done`)、implementer に具体的な指示を与える(`tasks/<id>.md` の「Human feedback」に書き、`status.py set tasks.<id>.review_rounds 0` でそのタスクの `review_rounds` を 0 に戻し、pending にする)、中止。待つ。
    - 部分再設計: reviewer の assessment で名指しされたセクションだけを改訂するよう明示して `tama-cc-devflow:design` を呼び、`design-reviewer` を 1 ラウンド、その後人間が差分を承認する(B の差分版)。次に `plan-feedback.md` に再計画すべきタスクを書いて `task-planner` を呼ぶ。write_scope が影響を受けない `done` のタスクは `done` のまま。D を再開する。
    - 全体再設計: phase を `design` にし、理由を `decisions.md` に書き、人間に説明する。現在のブランチ上で A をやり直す(完了済みの作業はコミット済みのまま先行作業になる)か、中止するかを尋ねる。待つ。

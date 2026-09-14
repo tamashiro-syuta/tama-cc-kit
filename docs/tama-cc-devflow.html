@@ -1,0 +1,652 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>tama-cc-devflow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Kaku+Gothic+New:wght@700&family=IBM+Plex+Sans+JP:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f6f7f4;
+    --surface: #ffffff;
+    --ink: #1b1f24;
+    --muted: #5c6672;
+    --line: #d6dbd8;
+    --line-strong: #aeb6b1;
+    --agent: #0f6e56;
+    --agent-soft: #e2f1eb;
+    --human: #b25e0a;
+    --human-soft: #fbeedc;
+    --code-bg: #eef0ec;
+    --font-display: "Zen Kaku Gothic New", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+    --font-body: "IBM Plex Sans JP", "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif;
+    --font-mono: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #15181b;
+      --surface: #1d2126;
+      --ink: #e7eaec;
+      --muted: #98a2ab;
+      --line: #2e353b;
+      --line-strong: #4a545c;
+      --agent: #4cc39a;
+      --agent-soft: #1b3a31;
+      --human: #e6a24a;
+      --human-soft: #3d2c14;
+      --code-bg: #23282d;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #15181b;
+    --surface: #1d2126;
+    --ink: #e7eaec;
+    --muted: #98a2ab;
+    --line: #2e353b;
+    --line-strong: #4a545c;
+    --agent: #4cc39a;
+    --agent-soft: #1b3a31;
+    --human: #e6a24a;
+    --human-soft: #3d2c14;
+    --code-bg: #23282d;
+  }
+
+  * { box-sizing: border-box; }
+  html { background: var(--bg); }
+  body {
+    margin: 0;
+    padding-block: 48px 96px;
+    padding-inline: 24px;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 15px;
+    line-height: 1.85;
+    font-feature-settings: "palt";
+  }
+  .page { max-width: 880px; margin-inline: auto; }
+  .prose { max-width: 720px; }
+
+  h1, h2, h3 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    text-wrap: balance;
+    line-height: 1.3;
+    margin: 0;
+  }
+  h1 { font-size: 2.1rem; }
+  h2 { font-size: 1.35rem; margin-top: 64px; padding-top: 18px; border-top: 2px solid var(--ink); }
+  h3 { font-size: 1.05rem; margin-top: 32px; }
+  p { margin: 12px 0; }
+  ul, ol { margin: 8px 0; padding-left: 1.4em; }
+  li { margin: 4px 0; }
+  li::marker { color: var(--muted); }
+  a { color: var(--agent); }
+  strong { font-weight: 600; }
+
+  header { padding-bottom: 8px; }
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 10px;
+  }
+  .lede { font-size: 1.05rem; max-width: 640px; margin-top: 14px; }
+
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.86em;
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+  pre {
+    font-family: var(--font-mono);
+    font-size: 0.82rem;
+    line-height: 1.6;
+    background: var(--code-bg);
+    border-radius: 4px;
+    padding: 14px 18px;
+    overflow-x: auto;
+    margin: 14px 0;
+  }
+  pre code { background: none; padding: 0; font-size: inherit; }
+  pre .c { color: var(--muted); }
+
+  .toc {
+    display: flex; flex-wrap: wrap; gap: 6px 18px;
+    margin-top: 28px; padding-top: 14px; border-top: 1px solid var(--line);
+    font-size: 0.88rem;
+  }
+  .toc a { color: var(--ink); text-decoration: none; border-bottom: 1px solid var(--line-strong); }
+  .toc a:hover, .toc a:focus-visible { border-bottom-color: var(--agent); outline: none; }
+
+  .ideas {
+    display: grid; grid-template-columns: repeat(2, 1fr); gap: 0 32px;
+    margin-top: 12px;
+  }
+  .ideas > div { border-top: 1px solid var(--line-strong); padding: 14px 0 12px; }
+  .ideas h3 { margin: 0 0 6px; font-size: 1rem; }
+  .ideas p { margin: 0; font-size: 0.92rem; color: var(--muted); }
+  @media (max-width: 560px) { .ideas { grid-template-columns: 1fr; } }
+
+  table {
+    border-collapse: collapse; width: 100%;
+    font-size: 0.9rem; margin: 14px 0;
+    font-variant-numeric: tabular-nums;
+  }
+  .table-wrap { overflow-x: auto; }
+  th, td { text-align: left; vertical-align: top; padding: 8px 12px 8px 0; border-bottom: 1px solid var(--line); }
+  th { font-weight: 600; font-size: 0.8rem; letter-spacing: 0.04em; color: var(--muted); border-bottom-color: var(--line-strong); }
+  td:first-child, th:first-child { padding-left: 0; }
+  td code { white-space: nowrap; }
+
+  .model { font-family: var(--font-mono); font-size: 0.78rem; color: var(--muted); }
+  .tag {
+    display: inline-block; font-family: var(--font-mono); font-size: 0.72rem;
+    padding: 0 6px; border-radius: 3px; line-height: 1.7; vertical-align: middle;
+  }
+  .tag.agent { background: var(--agent-soft); color: var(--agent); }
+  .tag.human { background: var(--human-soft); color: var(--human); }
+
+  figure { margin: 22px 0 8px; }
+  figure svg { display: block; width: 100%; height: auto; max-width: 100%; color: var(--ink); }
+  figcaption { font-size: 0.85rem; color: var(--muted); margin-top: 10px; max-width: 720px; }
+  .fig-wrap { overflow-x: auto; }
+  .fig-wrap svg { min-width: 560px; }
+
+  svg text { font-family: var(--font-body); font-size: 12px; fill: currentColor; }
+  svg text.small { font-size: 10.5px; fill: var(--muted); }
+  svg text.mono { font-family: var(--font-mono); font-size: 10px; fill: var(--muted); }
+  svg text.strong { font-weight: 600; }
+  svg text.human-t { fill: var(--human); }
+  svg text.agent-t { fill: var(--agent); }
+  svg .node { fill: var(--surface); stroke: var(--line-strong); stroke-width: 1; }
+  svg .node.agent { stroke: var(--agent); stroke-width: 1.4; }
+  svg .node.human { fill: var(--human-soft); stroke: var(--human); stroke-width: 1.4; }
+  svg .node.plain { fill: var(--code-bg); stroke: var(--line-strong); }
+  svg .edge { fill: none; stroke: currentColor; stroke-width: 1.2; }
+  svg .edge.human { stroke: var(--human); }
+  svg .edge.dashed { stroke-dasharray: 4 3; }
+  svg .edge.faint { stroke: var(--line-strong); }
+
+  .legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 0.82rem; color: var(--muted); margin-top: 6px; }
+  .legend span::before { content: ""; display: inline-block; width: 12px; height: 12px; border-radius: 2px; margin-right: 6px; vertical-align: -1px; border: 1.4px solid var(--agent); background: var(--surface); }
+  .legend span.h::before { border-color: var(--human); background: var(--human-soft); }
+  .legend span.p::before { border-color: var(--line-strong); background: var(--code-bg); }
+
+  .note {
+    border-left: 3px solid var(--human);
+    padding: 6px 16px; margin: 18px 0;
+    background: var(--surface);
+    font-size: 0.92rem;
+  }
+  .note p { margin: 6px 0; }
+
+  footer { margin-top: 72px; padding-top: 16px; border-top: 1px solid var(--line); font-size: 0.82rem; color: var(--muted); }
+  @media (prefers-reduced-motion: no-preference) { html { scroll-behavior: smooth; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+<header>
+  <div class="eyebrow">Claude Code plugin · tama-cc-kit</div>
+  <h1>tama-cc-devflow</h1>
+  <p class="lede">タスクの重さに応じて流れを変えるマルチ Agent 開発フロー。依頼を Small / Large に振り分け、設計・実装・レビューを Sub Agent に回し、人間の判断が要る場所でだけ止まり、最後に PR を作る。</p>
+<pre><code>/plugin marketplace add tamashiro-syuta/tama-cc-kit
+/plugin install tama-cc-devflow@tama-cc-kit
+
+/tama-cc-devflow:run &lt;依頼&gt;      <span class="c"># 開始。GitHub / Notion / Slack のリンク可</span>
+/tama-cc-devflow:status         <span class="c"># phase、Wave ごとのタスク、判断待ち</span>
+/tama-cc-devflow:resume         <span class="c"># チェックポイントから続行</span></code></pre>
+  <nav class="toc" aria-label="目次">
+    <a href="#ideas">設計のポイント</a>
+    <a href="#overview">全体の流れ</a>
+    <a href="#large">Large フロー</a>
+    <a href="#small">Small フロー</a>
+    <a href="#waves">Wave と並列実装</a>
+    <a href="#agents">Agent とモデル</a>
+    <a href="#whiteboard">ホワイトボード</a>
+    <a href="#guard">Write guard</a>
+    <a href="#limits">上限と停止条件</a>
+    <a href="#resume">中断と再開</a>
+    <a href="#layout">構成</a>
+  </nav>
+</header>
+
+<section id="ideas">
+  <h2>設計のポイント</h2>
+  <div class="ideas">
+    <div>
+      <h3>仮定の強制列挙で振り分ける</h3>
+      <p>Router は「実装できるか」ではなく「実装者が誰にも聞かずに置くことになる仮定」を全部書き出す。影響度 high の仮定が 1 つでもあれば Large。迷ったら Large。</p>
+    </div>
+    <div>
+      <h3>状態はファイル、会話ではない</h3>
+      <p>Agent は会話履歴を受け取らない。<code>.tama-cc-devflow/&lt;session&gt;/</code> のホワイトボードから必要なファイルだけ読み、決められたファイルだけ書く。</p>
+    </div>
+    <div>
+      <h3>レビューは有限回、判断は人間</h3>
+      <p>設計レビュー 3 回、タスクレビュー 3 回、Small は 1 回。上限に達したらループを止め、未解決の指摘とリスクをまとめて人間に渡す。</p>
+    </div>
+    <div>
+      <h3>hook が編集範囲を物理的に守る</h3>
+      <p>PreToolUse hook が、実装中はタスクの <code>write_scope</code> 外への Edit / Write を、それ以外の phase ではソース編集をすべてブロックする。</p>
+    </div>
+  </div>
+</section>
+
+<section id="overview">
+  <h2>全体の流れ</h2>
+  <p class="prose"><code>run</code> Skill が Orchestrator になる。セッションを作り、依頼とリンク先を <code>context.md</code> に整理し、Router に判定させ、サイズに応じたフロー Skill に処理を渡す。</p>
+  <figure>
+    <div class="fig-wrap">
+    <svg viewBox="0 0 920 262" role="img" aria-label="依頼が run、router を経て Small か Large のフローに分かれ、どちらも PR に至る">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+        <marker id="ar-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--human)"/>
+        </marker>
+      </defs>
+      <!-- request -->
+      <rect class="node plain" x="16" y="108" width="90" height="44" rx="4"/>
+      <text x="61" y="135" text-anchor="middle" class="strong">依頼</text>
+      <!-- run -->
+      <rect class="node agent" x="136" y="108" width="140" height="44" rx="4"/>
+      <text x="206" y="127" text-anchor="middle" class="strong">run</text>
+      <text x="206" y="143" text-anchor="middle" class="mono">orchestrator</text>
+      <!-- router -->
+      <rect class="node agent" x="306" y="108" width="100" height="44" rx="4"/>
+      <text x="356" y="127" text-anchor="middle" class="strong">router</text>
+      <text x="356" y="143" text-anchor="middle" class="mono">sonnet</text>
+      <!-- decision -->
+      <polygon class="node human" points="478,96 522,130 478,164 434,130"/>
+      <text x="478" y="134" text-anchor="middle" class="small human-t">判定</text>
+      <!-- small -->
+      <rect class="node agent" x="580" y="34" width="240" height="48" rx="4"/>
+      <text x="700" y="53" text-anchor="middle" class="strong">Small フロー</text>
+      <text x="700" y="70" text-anchor="middle" class="small">implementer 1 人 · レビュー 1 往復</text>
+      <!-- large -->
+      <rect class="node agent" x="580" y="178" width="240" height="48" rx="4"/>
+      <text x="700" y="197" text-anchor="middle" class="strong">Large フロー</text>
+      <text x="700" y="214" text-anchor="middle" class="small">設計 → 計画 → Wave 実装 → 統合</text>
+      <!-- PR -->
+      <rect class="node plain" x="856" y="108" width="52" height="44" rx="4"/>
+      <text x="882" y="135" text-anchor="middle" class="strong">PR</text>
+      <!-- edges -->
+      <line class="edge" x1="106" y1="130" x2="134" y2="130" marker-end="url(#ar)"/>
+      <line class="edge" x1="276" y1="130" x2="304" y2="130" marker-end="url(#ar)"/>
+      <text x="290" y="100" text-anchor="middle" class="mono">context.md</text>
+      <line class="edge" x1="406" y1="130" x2="432" y2="130" marker-end="url(#ar)"/>
+      <text x="420" y="100" text-anchor="middle" class="mono">router.md</text>
+      <path class="edge" d="M478,96 V58 H578" marker-end="url(#ar)"/>
+      <text x="530" y="52" text-anchor="middle" class="mono">small</text>
+      <path class="edge" d="M478,164 V202 H578" marker-end="url(#ar)"/>
+      <text x="530" y="196" text-anchor="middle" class="mono">large</text>
+      <path class="edge" d="M820,58 H838 V130 H854" marker-end="url(#ar)"/>
+      <path class="edge" d="M820,202 H838 V130"/>
+      <!-- human note -->
+      <text x="478" y="232" text-anchor="middle" class="small human-t">質問があれば人間に確認(最大 2 回)</text>
+      <text x="478" y="248" text-anchor="middle" class="small human-t">small 判定は人間が large に上書き可</text>
+    </svg>
+    </div>
+    <figcaption>Router が書く <code>router.md</code> には一発 Large 条件、Small 条件の採点、仮定一覧、人間への質問、判定が入る。Small のときは Task draft も書く。</figcaption>
+  </figure>
+  <div class="legend"><span>Agent</span><span class="h">人間の判断</span><span class="p">入力 / 成果物</span></div>
+
+  <h3>Router の判定ルール</h3>
+  <ol class="prose">
+    <li><strong>一発 Large 条件</strong>: Public API の破壊的変更、インフラ変更、DB スキーマ変更、認証 / 認可、外部サービス連携。1 つでも該当すれば Large。</li>
+    <li><strong>Small 条件</strong>: 1〜3 ファイルに閉じる、既存パターンを踏襲できる、新しい設計判断がない、など 9 項目を yes / no / unclear で採点。</li>
+    <li><strong>仮定の強制列挙</strong>: エッジケース、命名、配置場所、データ形状、エラー時の挙動、互換性、テストについて暗黙の仮定を列挙し、high / medium / low を付ける。</li>
+    <li><strong>判定</strong>: 一発条件に該当、high の仮定が 1 つ以上、Small 条件に no / unclear が 2 つ以上、のいずれかで Large。</li>
+  </ol>
+</section>
+
+<section id="large">
+  <h2>Large フロー</h2>
+  <p class="prose">設計を固めてから分解し、Wave 単位で並列実装する。各段階に有限回のレビューループがあり、設計承認と最終レビューの 2 か所で人間が止める。</p>
+  <figure>
+    <div class="fig-wrap">
+    <svg viewBox="0 0 860 780" role="img" aria-label="Large フローの 7 段階。設計とレビューのループ、人間の設計承認、計画、並列実装とレビューのループ、統合レビュー、人間レビュー、PR 作成。request changes は前段に戻る">
+      <defs>
+        <marker id="ar2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+        <marker id="ar2-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--human)"/>
+        </marker>
+      </defs>
+
+      <!-- A: design -->
+      <text x="190" y="16" class="mono">A  phase: design / design_review</text>
+      <rect class="node agent" x="190" y="24" width="150" height="48" rx="4"/>
+      <text x="265" y="44" text-anchor="middle" class="strong">design</text>
+      <text x="265" y="60" text-anchor="middle" class="mono">fable</text>
+      <rect class="node agent" x="460" y="24" width="150" height="48" rx="4"/>
+      <text x="535" y="44" text-anchor="middle" class="strong">design-reviewer</text>
+      <text x="535" y="60" text-anchor="middle" class="mono">fable</text>
+      <line class="edge" x1="340" y1="40" x2="458" y2="40" marker-end="url(#ar2)"/>
+      <text x="400" y="36" text-anchor="middle" class="mono">design.md</text>
+      <line class="edge" x1="460" y1="58" x2="342" y2="58" marker-end="url(#ar2)"/>
+      <text x="400" y="70" text-anchor="middle" class="mono">FAIL</text>
+      <text x="190" y="92" class="small">合格条件 10 項目で判定。最大 3 ラウンド。3 回 FAIL なら争点を整理して人間に選ばせる</text>
+      <line class="edge" x1="535" y1="72" x2="535" y2="126" marker-end="url(#ar2)"/>
+      <text x="543" y="106" class="mono">PASS</text>
+
+      <!-- B: approval -->
+      <text x="250" y="120" class="mono">B  phase: design_approval</text>
+      <rect class="node human" x="250" y="128" width="300" height="48" rx="4"/>
+      <text x="400" y="148" text-anchor="middle" class="strong human-t">人間: 設計承認</text>
+      <text x="400" y="164" text-anchor="middle" class="small human-t">approve / request changes / abort</text>
+      <text x="250" y="196" class="small">要約、インターフェース変更、異常系とロールバック、タスク分解案、Open questions を提示</text>
+      <path class="edge human" d="M250,152 H160 V48 H188" marker-end="url(#ar2-h)"/>
+      <text x="152" y="104" text-anchor="end" class="small human-t">request changes</text>
+      <line class="edge" x1="400" y1="176" x2="400" y2="230" marker-end="url(#ar2)"/>
+
+      <!-- C: planning -->
+      <text x="250" y="224" class="mono">C  phase: planning</text>
+      <rect class="node agent" x="250" y="232" width="300" height="48" rx="4"/>
+      <text x="400" y="252" text-anchor="middle" class="strong">task-planner → plan-waves.py</text>
+      <text x="400" y="268" text-anchor="middle" class="mono">opus</text>
+      <text x="250" y="300" class="small">plan.json と tasks/*.md。write_scope 競合を検出して Wave を割り当て、devflow/&lt;slug&gt; ブランチを作る</text>
+      <line class="edge" x1="300" y1="280" x2="300" y2="334" marker-end="url(#ar2)"/>
+
+      <!-- D: implementation -->
+      <text x="460" y="328" class="mono">D  phase: implementation</text>
+      <rect class="node agent" x="190" y="336" width="150" height="48" rx="4"/>
+      <text x="265" y="356" text-anchor="middle" class="strong">implementer ×3</text>
+      <text x="265" y="372" text-anchor="middle" class="mono">sonnet · 並列</text>
+      <rect class="node agent" x="460" y="336" width="150" height="48" rx="4"/>
+      <text x="535" y="356" text-anchor="middle" class="strong">impl-reviewer</text>
+      <text x="535" y="372" text-anchor="middle" class="mono">opus</text>
+      <line class="edge" x1="340" y1="352" x2="458" y2="352" marker-end="url(#ar2)"/>
+      <text x="400" y="348" text-anchor="middle" class="mono">result.md</text>
+      <line class="edge" x1="460" y1="370" x2="342" y2="370" marker-end="url(#ar2)"/>
+      <text x="400" y="382" text-anchor="middle" class="mono">FAIL</text>
+      <text x="190" y="404" class="small">Wave ごとに ready なタスクを最大 3 件並列。タスクごと最大 3 ラウンド</text>
+      <text x="190" y="420" class="small">PASS でタスク単位に commit。design break は 4 段階に分類し、</text>
+      <text x="190" y="436" class="small">partial / full-redesign は止めて人間へ</text>
+      <line class="edge" x1="535" y1="384" x2="535" y2="458" marker-end="url(#ar2)"/>
+      <text x="543" y="428" class="mono">全タスク done</text>
+
+      <!-- E: integration -->
+      <text x="250" y="452" class="mono">E  phase: integration</text>
+      <rect class="node agent" x="250" y="460" width="300" height="48" rx="4"/>
+      <text x="400" y="480" text-anchor="middle" class="strong">integration-reviewer</text>
+      <text x="400" y="496" text-anchor="middle" class="mono">fable</text>
+      <text x="250" y="528" class="small">タスク横断の整合性、テスト / lint / 型チェック全体、要件カバレッジ、人間レビューガイドの作成</text>
+      <path class="edge dashed" d="M550,484 H690 V360 H612" marker-end="url(#ar2)"/>
+      <text x="698" y="424" class="mono">FAIL → 再実装 1 回</text>
+      <line class="edge" x1="400" y1="508" x2="400" y2="562" marker-end="url(#ar2)"/>
+      <text x="408" y="542" class="mono">PASS</text>
+
+      <!-- F: human review -->
+      <text x="250" y="556" class="mono">F  phase: human_review</text>
+      <rect class="node human" x="250" y="564" width="300" height="48" rx="4"/>
+      <text x="400" y="584" text-anchor="middle" class="strong human-t">人間: レビューガイドを確認</text>
+      <text x="400" y="600" text-anchor="middle" class="small human-t">approve / request changes / abort</text>
+      <text x="250" y="632" class="small">must-read files、risk hotspots、運用 / 異常系の論点、推奨する手動検証を提示。全部は読ませない</text>
+      <path class="edge human" d="M250,588 H160 V344 H188" marker-end="url(#ar2-h)"/>
+      <text x="152" y="470" text-anchor="end" class="small human-t">request changes</text>
+      <line class="edge" x1="400" y1="612" x2="400" y2="666" marker-end="url(#ar2)"/>
+
+      <!-- G: PR -->
+      <text x="250" y="660" class="mono">G  phase: pr → done</text>
+      <rect class="node agent" x="250" y="668" width="300" height="48" rx="4"/>
+      <text x="400" y="688" text-anchor="middle" class="strong">pr-writer</text>
+      <text x="400" y="704" text-anchor="middle" class="mono">sonnet</text>
+      <text x="250" y="736" class="small">push、pr-body.md 作成、gh pr create。設計決定と人間レビューガイドを PR 本文に転記する</text>
+      <text x="250" y="760" class="small">最終報告: PR URL、Wave とタスク、使ったレビューラウンド、人間が解決した block、残した non-blocking 指摘</text>
+    </svg>
+    </div>
+    <figcaption>Large フローの 7 段階。設計承認と最終レビューの 2 か所で必ず止まる。琥珀の矢印は人間の request changes による差し戻し。</figcaption>
+  </figure>
+
+  <h3>設計書に必ず含めるもの</h3>
+  <p class="prose">design Agent は設計を 1 つに決め、代替案は Rejected alternatives にだけ書く。Summary、Requirements mapping、Chosen design、Impact、Error handling policy、Rollback policy、Observability、Task breakdown proposal、Open questions が必須で、該当なしでも "none" と明記する。改訂時は冒頭に Changes since last round を置き、以前の内容を黙って落とさない。</p>
+</section>
+
+<section id="small">
+  <h2>Small フロー</h2>
+  <p class="prose">Router の Task draft をそのまま <code>tasks/T1.md</code> にし、implementer 1 人で実装する。再作業は 1 回だけ。</p>
+  <figure>
+    <div class="fig-wrap">
+    <svg viewBox="0 0 900 170" role="img" aria-label="Small フロー。Task draft から implementer と impl-reviewer の 1 往復、人間の確認、pr-writer による PR 作成">
+      <defs>
+        <marker id="ar3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+        <marker id="ar3-h" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="var(--human)"/>
+        </marker>
+      </defs>
+      <rect class="node plain" x="16" y="40" width="120" height="48" rx="4"/>
+      <text x="76" y="60" text-anchor="middle" class="strong">Task draft</text>
+      <text x="76" y="76" text-anchor="middle" class="mono">tasks/T1.md</text>
+
+      <rect class="node agent" x="176" y="40" width="140" height="48" rx="4"/>
+      <text x="246" y="60" text-anchor="middle" class="strong">implementer</text>
+      <text x="246" y="76" text-anchor="middle" class="mono">sonnet</text>
+
+      <rect class="node agent" x="396" y="40" width="140" height="48" rx="4"/>
+      <text x="466" y="60" text-anchor="middle" class="strong">impl-reviewer</text>
+      <text x="466" y="76" text-anchor="middle" class="mono">opus</text>
+
+      <rect class="node human" x="596" y="40" width="130" height="48" rx="4"/>
+      <text x="661" y="60" text-anchor="middle" class="strong human-t">人間の確認</text>
+      <text x="661" y="76" text-anchor="middle" class="small human-t">PR 作成を承認</text>
+
+      <rect class="node agent" x="766" y="40" width="118" height="48" rx="4"/>
+      <text x="825" y="60" text-anchor="middle" class="strong">pr-writer</text>
+      <text x="825" y="76" text-anchor="middle" class="mono">→ PR</text>
+
+      <line class="edge" x1="136" y1="64" x2="174" y2="64" marker-end="url(#ar3)"/>
+      <line class="edge" x1="316" y1="56" x2="394" y2="56" marker-end="url(#ar3)"/>
+      <line class="edge" x1="396" y1="68" x2="318" y2="68" marker-end="url(#ar3)"/>
+      <text x="356" y="50" text-anchor="middle" class="mono">result.md</text>
+      <text x="356" y="86" text-anchor="middle" class="mono">FAIL · 1 回だけ</text>
+      <line class="edge" x1="536" y1="64" x2="594" y2="64" marker-end="url(#ar3)"/>
+      <text x="565" y="56" text-anchor="middle" class="mono">PASS</text>
+      <text x="565" y="82" text-anchor="middle" class="mono">commit</text>
+      <line class="edge" x1="726" y1="64" x2="764" y2="64" marker-end="url(#ar3)"/>
+      <path class="edge human" d="M661,88 V120 H246 V90" marker-end="url(#ar3-h)"/>
+      <text x="453" y="134" text-anchor="middle" class="small human-t">修正依頼は Human feedback に書いて再実装(許容 1 回分として数える)</text>
+      <text x="16" y="158" class="small">2 回目も FAIL、design break、blocked のいずれかなら停止: (a) Large フローに昇格 (b) 人間が手で直す (c) 中止</text>
+    </svg>
+    </div>
+    <figcaption>Small フロー。設計書は書かず、Router の draft を implementer が直接実装する。</figcaption>
+  </figure>
+</section>
+
+<section id="waves">
+  <h2>Wave と並列実装</h2>
+  <p class="prose">task-planner が <code>plan.json</code> に <code>depends_on</code> と <code>write_scope</code> を明示し、<code>plan-waves.py</code> が検証して Wave を割り当てる。Wave は依存チェーンの長さ。実行時は <code>status.py ready</code> が最下位 Wave の pending タスクを最大 3 件ずつ払い出す。</p>
+  <figure>
+    <div class="fig-wrap">
+    <svg viewBox="0 0 780 250" role="img" aria-label="5 タスクの Wave 割当の例。T1 と T5 が Wave 1、T1 に依存する T2 と T3 が Wave 2、T3 と write_scope が重なる T4 が直列化されて Wave 3">
+      <defs>
+        <marker id="ar4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="currentColor"/>
+        </marker>
+      </defs>
+      <text x="140" y="22" text-anchor="middle" class="mono">wave 1</text>
+      <text x="390" y="22" text-anchor="middle" class="mono">wave 2</text>
+      <text x="640" y="22" text-anchor="middle" class="mono">wave 3</text>
+      <line class="edge faint" x1="265" y1="30" x2="265" y2="220"/>
+      <line class="edge faint" x1="515" y1="30" x2="515" y2="220"/>
+
+      <rect class="node agent" x="50" y="44" width="180" height="52" rx="4"/>
+      <text x="62" y="64" class="strong">T1  共有の型を追加</text>
+      <text x="62" y="82" class="mono">src/types.ts</text>
+
+      <rect class="node agent" x="50" y="150" width="180" height="52" rx="4"/>
+      <text x="62" y="170" class="strong">T5  ドキュメント更新</text>
+      <text x="62" y="188" class="mono">docs/**</text>
+
+      <rect class="node agent" x="300" y="44" width="180" height="52" rx="4"/>
+      <text x="312" y="64" class="strong">T2  API 実装</text>
+      <text x="312" y="82" class="mono">src/api/**</text>
+
+      <rect class="node agent" x="300" y="150" width="180" height="52" rx="4"/>
+      <text x="312" y="170" class="strong">T3  UI 実装</text>
+      <text x="312" y="188" class="mono">src/ui/**</text>
+
+      <rect class="node agent" x="550" y="150" width="205" height="52" rx="4"/>
+      <text x="562" y="170" class="strong">T4  CLI 実装</text>
+      <text x="562" y="188" class="mono">src/cli/**, src/ui/shared.ts</text>
+
+      <line class="edge" x1="230" y1="70" x2="298" y2="70" marker-end="url(#ar4)"/>
+      <path class="edge" d="M230,80 H262 V176 H298" marker-end="url(#ar4)"/>
+      <text x="256" y="130" text-anchor="end" class="mono">depends_on</text>
+      <line class="edge dashed" x1="480" y1="176" x2="548" y2="176" marker-end="url(#ar4)"/>
+      <text x="514" y="166" text-anchor="middle" class="mono">直列化</text>
+      <text x="50" y="236" class="small">T4 は本来独立だが src/ui/shared.ts が T3 の write_scope と重なるため、plan-waves.py が T3 への依存を追加して Wave 3 に送る。</text>
+    </svg>
+    </div>
+    <figcaption>Wave 割当の例。同じ Wave で 1 つのファイルを複数タスクが触ることはない。db_changes / infra_changes を持つタスク同士も並列にしない。</figcaption>
+  </figure>
+  <ul class="prose">
+    <li>タスクは、自分のタスクファイルと <code>context.md</code>、<code>decisions.md</code> だけを読んだ implementer 1 人が一度で完了できる粒度にする。</li>
+    <li>共有のインターフェース・型・スキーマを変えるタスクは利用側より先に置く。マイグレーション、インフラ、共通ライブラリは独立タスクにする。</li>
+    <li>小さなタスクを多数作らない。テストは挙動を導入するタスクに含める。</li>
+    <li>直列化が起きたら Orchestrator は統合か scope の縮小を planner に差し戻す(最大 2 ラウンド)。</li>
+  </ul>
+</section>
+
+<section id="agents">
+  <h2>Agent とモデル</h2>
+  <p class="prose">各 Agent は書いてよいファイルが 1 つか 2 つに固定されていて、それ以外は読むだけ。モデルは役割の重さで使い分ける。</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>Agent</th><th>役割</th><th>モデル</th><th>書くファイル</th></tr></thead>
+    <tbody>
+      <tr><td><code>router</code></td><td>Small / Large 分類。仮定の強制列挙</td><td class="model">sonnet</td><td><code>router.md</code></td></tr>
+      <tr><td><code>explore</code></td><td>他 Agent 向けの読み取り専用コード調査</td><td class="model">sonnet</td><td>なし</td></tr>
+      <tr><td><code>design</code></td><td>設計書と決定事項。却下案、影響範囲、異常系、ロールバック</td><td class="model">fable</td><td><code>design/design.md</code>, <code>decisions.md</code></td></tr>
+      <tr><td><code>design-reviewer</code></td><td>合格条件 10 項目に対する PASS / FAIL 判定</td><td class="model">fable</td><td><code>reviews/design-r&lt;N&gt;.md</code></td></tr>
+      <tr><td><code>task-planner</code></td><td>タスク分解、依存関係、scope。<code>plan-waves.py</code> の実行</td><td class="model">opus</td><td><code>plan.json</code>, <code>tasks/&lt;id&gt;.md</code></td></tr>
+      <tr><td><code>implementer</code></td><td>タスク 1 件を write_scope 内で実装。コミットしない</td><td class="model">sonnet</td><td>write_scope 内のソース, <code>tasks/&lt;id&gt;.result.md</code></td></tr>
+      <tr><td><code>impl-reviewer</code></td><td>受け入れ条件の検証、テスト実行、design break の分類</td><td class="model">opus</td><td><code>reviews/&lt;id&gt;-r&lt;N&gt;.md</code></td></tr>
+      <tr><td><code>integration-reviewer</code></td><td>変更全体の整合性、チェック実行、人間レビューガイド</td><td class="model">fable</td><td><code>reviews/integration.md</code></td></tr>
+      <tr><td><code>pr-writer</code></td><td>push と <code>gh pr create</code></td><td class="model">sonnet</td><td><code>pr-body.md</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="prose">Agent の返答は数行の固定フォーマット(例: <code>verdict: PASS|FAIL</code>、<code>blocking: &lt;count&gt;</code>)に限られる。Orchestrator はそれと status.json だけを見て次の遷移を決める。ファイルの内容はプロンプトに貼らず、Agent が自分で読む。</p>
+</section>
+
+<section id="whiteboard">
+  <h2>ホワイトボード</h2>
+  <p class="prose">すべての状態は <code>&lt;project&gt;/.tama-cc-devflow/&lt;session-id&gt;/</code> に置く(git 管理外。<code>init-session.sh</code> が <code>.gitignore</code> に追記する)。<code>.tama-cc-devflow/current</code> が最新セッションの id を指す。</p>
+<pre><code>SESSION_DIR/
+  status.json                 <span class="c">phase、tasks、review_rounds。スクリプト経由でのみ更新</span>
+  context.md                  <span class="c">依頼原文、要件、制約、関連ファイル、人間への確認結果</span>
+  decisions.md                <span class="c">"## Dn: title" / "- Decision:" / "- Reason:" の決定だけ</span>
+  router.md                   <span class="c">判定、仮定一覧、Task draft(Small)</span>
+  design/design.md            <span class="c">設計書(Large)</span>
+  design/human-feedback.md    <span class="c">設計への人間の修正依頼(Large、任意)</span>
+  plan.json                   <span class="c">タスクのメタデータ(Large)</span>
+  plan-feedback.md            <span class="c">Orchestrator から task-planner への差し戻し(任意)</span>
+  tasks/&lt;id&gt;.md               <span class="c">タスク定義。Human feedback / Integration findings はここに追記</span>
+  tasks/&lt;id&gt;.result.md        <span class="c">implementer の結果</span>
+  reviews/design-r&lt;N&gt;.md      <span class="c">設計レビュー N ラウンド目</span>
+  reviews/&lt;id&gt;-r&lt;N&gt;.md        <span class="c">実装レビュー N ラウンド目</span>
+  reviews/integration.md      <span class="c">統合レビュー + 人間レビューガイド</span>
+  pr-body.md                  <span class="c">PR 本文</span></code></pre>
+
+  <h3>status.json とスクリプト</h3>
+  <p class="prose">phase は <code>init → routing → clarify → design → design_review → design_approval → planning → implementation → integration → human_review → pr → done</code>(または <code>aborted</code>)。タスク状態は <code>pending / running / review / done / failed / blocked</code>。手で編集せず、必ずスクリプトを使う。</p>
+<pre><code>status.py summary                       <span class="c"># phase、Wave ごとのタスク、判断待ち</span>
+status.py set phase '"design"'          <span class="c"># 値は JSON。文字列は引用符が要る</span>
+status.py task T1 running               <span class="c"># review への遷移で review_rounds が +1</span>
+status.py ready                         <span class="c"># 今実行できるタスク id。最下位 Wave から最大 3 件</span>
+status.py reset-running                 <span class="c"># running / review を pending に戻す(resume 用)</span>
+plan-waves.py                           <span class="c"># plan.json 検証、write_scope 競合の直列化、Wave 割当</span></code></pre>
+</section>
+
+<section id="guard">
+  <h2>Write guard</h2>
+  <p class="prose"><code>hooks.json</code> の PreToolUse hook が Edit / Write / NotebookEdit のたびに <code>guard-write-scope.py</code> を実行する。<code>status.json</code> の <code>claude_session_id</code> が現在の Claude セッションと一致し、phase が guard 対象のときだけ働く。<code>.tama-cc-devflow/</code> と <code>.gitignore</code> への書き込みは常に通す。</p>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>phase</th><th>ソースファイルへの編集</th></tr></thead>
+    <tbody>
+      <tr><td><code>implementation</code></td><td><code>running</code> / <code>review</code> 状態のタスクの <code>write_scope</code> 内のみ許可</td></tr>
+      <tr><td><code>routing</code> 〜 <code>planning</code>, <code>integration</code>, <code>human_review</code>, <code>pr</code></td><td>すべてブロック。ホワイトボードだけ書ける</td></tr>
+      <tr><td><code>init</code>, <code>done</code>, <code>aborted</code>、別セッション所有</td><td>guard は働かない</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="note">
+    <p>implementer は scope 外のファイルが必要になっても回避しない。結果ファイルの Deviations に scope 逸脱として報告する。Orchestrator は implementer を呼ぶ前にタスクを <code>running</code> にしておかないと、編集がすべてブロックされる。</p>
+  </div>
+</section>
+
+<section id="limits">
+  <h2>上限と停止条件</h2>
+  <div class="table-wrap">
+  <table>
+    <thead><tr><th>項目</th><th>上限</th><th>上限に達したら</th></tr></thead>
+    <tbody>
+      <tr><td>Router の人間への質問</td><td>2 回</td><td>Large として扱い、未決の質問を設計に持ち越す</td></tr>
+      <tr><td>設計レビュー</td><td>3 ラウンド</td><td>争点を整理し、人間が「指示付きで改訂 / 受け入れ / 中止」を選ぶ</td></tr>
+      <tr><td>task-planner の差し戻し</td><td>2 ラウンド</td><td>plan を人間に提示して判断を仰ぐ</td></tr>
+      <tr><td>タスクごとの実装レビュー(Large)</td><td>3 ラウンド</td><td>タスクを <code>blocked</code> にし、人間が「手で直す / 指示を与えて再実行 / 中止」を選ぶ</td></tr>
+      <tr><td>実装レビュー(Small)</td><td>1 回の再作業</td><td>Large へ昇格 / 手で直す / 中止</td></tr>
+      <tr><td>統合レビューの再作業</td><td>1 回</td><td>人間にエスカレーション</td></tr>
+      <tr><td>同時に動く implementer</td><td>3</td><td>残りは次の <code>ready</code> で払い出す</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="prose">人間に尋ねる前に必ず状況を <code>decisions.md</code> か <code>abort.md</code> に記録する。人間に何かを尋ねたら、ターンを終えて待つ。ゲートは飛ばさない。</p>
+  <h3>design break の扱い</h3>
+  <p class="prose">implementer が設計で固定された Public API、データモデル、モジュール責務、エラー契約の変更を必要とした場合、それを実行せず design break として報告する。impl-reviewer が分類し、Orchestrator が対応を変える。</p>
+  <ul class="prose">
+    <li><strong>continue</strong>: 通常の PASS / FAIL として扱い、逸脱を <code>decisions.md</code> に記録する。</li>
+    <li><strong>partial-redesign</strong>: 該当タスクと依存タスクを止め、design Agent に名指しされたセクションだけ改訂させ、レビュー 1 ラウンドと人間の差分承認を経て再計画する。write_scope が影響を受けない <code>done</code> タスクはそのまま。</li>
+    <li><strong>full-redesign</strong>: phase を <code>design</code> に戻し、現在のブランチ上で設計からやり直すか中止するかを人間に尋ねる。</li>
+  </ul>
+</section>
+
+<section id="resume">
+  <h2>中断と再開</h2>
+  <p class="prose">Orchestrator は各 Agent 呼び出しの前後で <code>status.json</code> を更新する。<code>/tama-cc-devflow:resume</code> はそれだけを頼りに続行できる。</p>
+  <ol class="prose">
+    <li><code>status.py summary</code> で phase を確認する。<code>done</code> なら終了、<code>aborted</code> なら <code>abort.md</code> を見せて続行するか尋ねる。</li>
+    <li><code>reset-running</code> で中断していたタスクを <code>pending</code> に戻し、<code>claude_session_id</code> を今のセッションに付け替える(write guard の所有者が変わる)。</li>
+    <li>作業ツリーを確認する。中断タスクの write_scope 内の未コミット変更は保持し、implementer が続きから作業する。それ以外の未コミット変更があれば止めて人間に尋ねる。</li>
+    <li><code>size</code> に応じて small-flow / large-flow を呼ぶ。両 Skill は再入可能で、記録された phase から続行し、完了済みの作業は飛ばす。</li>
+  </ol>
+  <p class="prose">回復不能な失敗時は phase を <code>aborted</code> にして <code>abort.md</code> に経緯を書く。ブランチは調査用に残し、<code>git checkout &lt;base_branch&gt;</code> で戻れることを人間に伝える。</p>
+</section>
+
+<section id="layout">
+  <h2>構成</h2>
+<pre><code>plugins/tama-cc-devflow/
+  skills/run, resume, status      <span class="c">ユーザーが起動する入口</span>
+  skills/workboard                <span class="c">ホワイトボードの Schema と規約(Agent 専用)</span>
+  skills/small-flow, large-flow   <span class="c">オーケストレーション手順(Agent 専用、再入可能)</span>
+  agents/*.md                     <span class="c">Sub Agent 定義(model、tools、maxTurns、書いてよいファイル)</span>
+  hooks/hooks.json                <span class="c">PreToolUse の write_scope guard</span>
+  scripts/init-session.sh         <span class="c">セッションディレクトリの作成</span>
+  scripts/status.py               <span class="c">status.json の読み書き、実行可能タスクの列挙</span>
+  scripts/plan-waves.py           <span class="c">plan.json の検証、write_scope 競合の検出、Wave 割当</span>
+  scripts/guard-write-scope.py    <span class="c">PreToolUse hook 本体</span></code></pre>
+  <p class="prose">必要なもの: <code>git</code>、認証済みの <code>gh</code>、<code>python3</code>。ローカル開発は <code>claude --plugin-dir ./plugins/tama-cc-devflow</code> と <code>claude plugin validate ./plugins/tama-cc-devflow --strict</code>。</p>
+</section>
+
+<footer>tama-cc-devflow v0.1.0 · <a href="https://github.com/tamashiro-syuta/tama-cc-kit">tamashiro-syuta/tama-cc-kit</a></footer>
+
+</div>
+</body>
+</html>

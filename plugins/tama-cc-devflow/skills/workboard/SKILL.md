@@ -67,6 +67,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/plan-waves.py"                 # plan.jso
 
 - 設計レビュー: 3 ラウンド。タスクごとの実装レビュー: 3 ラウンド。Small フロー: 1 ラウンド。
 - 同時実行する implementer: 3。
+- 人間へのヒアリング(clarify Skill)には回数上限を設けない。上限があるのは Agent 同士のループだけ。
 - 上限に達したらループを続けない。未解決の指摘、blocking / non-blocking の区別、残存リスク、推奨する次のアクションをまとめ、タスクを `blocked` にする(または `human_decisions_required` に追加する)。判断は人間に渡す。
 
 ## Write guard

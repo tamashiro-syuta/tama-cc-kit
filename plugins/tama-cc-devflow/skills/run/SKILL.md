@@ -39,7 +39,7 @@ allowed-tools:
 
 `tama-cc-devflow:router` を `SESSION_DIR` 付きで呼ぶ。返答と `SESSION_DIR/router.md` を読む。
 
-- `questions_for_human > 0` の場合: phase を `clarify` にし、人間に質問する(選択肢が離散的なら AskUserQuestion、そうでなければ通常の質問)。ターンを終えて待つ。回答を context.md の「Clarifications」に記録する。更新した context で router をもう一度呼ぶ。繰り返しは最大 2 回。それでも質問が残る場合は判定を `large` として扱い、未決の質問を設計フェーズに持ち越す。
+- `questions_for_human > 0` の場合: phase を `clarify` にし、Skill `tama-cc-devflow:clarify` を `router.md` の Questions for human を入力として実行する(1 問ずつ、推奨回答付き)。全問解消後、更新した context で router をもう一度呼ぶ。この往復は最大 2 回。それでも質問が残る場合は判定を `large` として扱い、残りは設計フェーズのヒアリングに持ち越す。
 - `status.py set size '"small"'` または `'"large"'`。
 - 判定を人間に 3 行で伝える: サイズ、決め手となった理由、次に起きること。判定が `small` の場合、人間は `large` に上書きできる。進む前に 1 回だけ確認を待つ。
 
