@@ -1,0 +1,17 @@
+{
+  "description": "Blocks Edit/Write outside the active devflow session's allowed paths (task write_scope during implementation, whiteboard-only in other phases).",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|NotebookEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/scripts/guard-write-scope.py\"",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
