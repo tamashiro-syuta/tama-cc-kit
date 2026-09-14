@@ -1,0 +1,18 @@
+{
+  "name": "tama-cc-devflow",
+  "version": "0.1.0",
+  "description": "Adaptive multi-agent development flow. Classifies a task as Small or Large, then drives design, review, dependency-aware parallel implementation, integration review, and PR creation with bounded review loops, a file-based shared whiteboard, and checkpoint resume.",
+  "author": {
+    "name": "tamashiro-syuta"
+  },
+  "license": "MIT",
+  "keywords": [
+    "workflow",
+    "orchestration",
+    "multi-agent",
+    "design-review",
+    "code-review"
+  ],
+  "homepage": "https://github.com/tamashiro-syuta/tama-cc-kit",
+  "repository": "https://github.com/tamashiro-syuta/tama-cc-kit"
+}

@@ -1,0 +1,16 @@
+{
+  "$schema": "https://anthropic.com/claude-code/marketplace.schema.json",
+  "name": "tama-cc-kit",
+  "description": "tamashiro-syuta's Claude Code plugins",
+  "owner": {
+    "name": "tamashiro-syuta"
+  },
+  "plugins": [
+    {
+      "name": "tama-cc-devflow",
+      "description": "Adaptive multi-agent development flow: routes a task to a Small or Large flow, drives design/implementation/review loops with bounded retries, keeps state on a shared whiteboard, and resumes from checkpoints.",
+      "source": "./plugins/tama-cc-devflow",
+      "category": "development"
+    }
+  ]
+}
