@@ -43,7 +43,7 @@ def main():
         return
     abs_path = os.path.abspath(os.path.join(project, path))
     rel = os.path.relpath(abs_path, project)
-    if rel.startswith(".tama-cc-devflow/") or rel == ".gitignore":
+    if rel.startswith(".tama-cc-devflow/"):
         return
 
     phase = status["phase"]

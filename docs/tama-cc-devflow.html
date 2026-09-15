@@ -580,7 +580,7 @@
 
 <section id="whiteboard">
   <h2>ホワイトボード</h2>
-  <p class="prose">すべての状態は <code>&lt;project&gt;/.tama-cc-devflow/&lt;session-id&gt;/</code> に置く(git 管理外。<code>init-session.sh</code> が <code>.gitignore</code> に追記する)。<code>.tama-cc-devflow/current</code> が最新セッションの id を指す。</p>
+  <p class="prose">すべての状態は <code>&lt;project&gt;/.tama-cc-devflow/&lt;session-id&gt;/</code> に置く(git 管理外。プロジェクトの <code>.gitignore</code> には触れず、global gitignore で <code>**/.tama-cc-devflow/</code> を無視する)。<code>.tama-cc-devflow/current</code> が最新セッションの id を指す。</p>
 <pre><code>SESSION_DIR/
   status.json                 <span class="c">phase、tasks、review_rounds。スクリプト経由でのみ更新</span>
   context.md                  <span class="c">依頼原文、要件、制約、関連ファイル、人間への確認結果</span>
@@ -609,7 +609,7 @@ plan-waves.py                           <span class="c"># plan.json 検証、wri
 
 <section id="guard">
   <h2>Write guard</h2>
-  <p class="prose"><code>hooks.json</code> の PreToolUse hook が Edit / Write / NotebookEdit のたびに <code>guard-write-scope.py</code> を実行する。<code>status.json</code> の <code>claude_session_id</code> が現在の Claude セッションと一致し、phase が guard 対象のときだけ働く。<code>.tama-cc-devflow/</code> と <code>.gitignore</code> への書き込みは常に通す。</p>
+  <p class="prose"><code>hooks.json</code> の PreToolUse hook が Edit / Write / NotebookEdit のたびに <code>guard-write-scope.py</code> を実行する。<code>status.json</code> の <code>claude_session_id</code> が現在の Claude セッションと一致し、phase が guard 対象のときだけ働く。<code>.tama-cc-devflow/</code> への書き込みは常に通す。</p>
   <div class="table-wrap">
   <table>
     <thead><tr><th>phase</th><th>ソースファイルへの編集</th></tr></thead>
@@ -677,7 +677,7 @@ plan-waves.py                           <span class="c"># plan.json 検証、wri
   scripts/status.py               <span class="c">status.json の読み書き、実行可能タスクの列挙</span>
   scripts/plan-waves.py           <span class="c">plan.json の検証、write_scope 競合の検出、Wave 割当</span>
   scripts/guard-write-scope.py    <span class="c">PreToolUse hook 本体</span></code></pre>
-  <p class="prose">必要なもの: <code>git</code>、認証済みの <code>gh</code>、<code>python3</code>。ローカル開発は <code>claude --plugin-dir ./plugins/tama-cc-devflow</code> と <code>claude plugin validate ./plugins/tama-cc-devflow --strict</code>。</p>
+  <p class="prose">必要なもの: <code>git</code>、認証済みの <code>gh</code>、<code>python3</code>。セットアップとして global gitignore(<code>core.excludesFile</code>)に <code>**/.tama-cc-devflow/</code> を追加する。プラグインはプロジェクトの <code>.gitignore</code> に触れない。ローカル開発は <code>claude --plugin-dir ./plugins/tama-cc-devflow</code> と <code>claude plugin validate ./plugins/tama-cc-devflow --strict</code>。</p>
 </section>
 
 <footer>tama-cc-devflow v0.1.0 · <a href="https://github.com/tamashiro-syuta/tama-cc-kit">tamashiro-syuta/tama-cc-kit</a></footer>

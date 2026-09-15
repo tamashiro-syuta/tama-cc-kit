@@ -74,9 +74,4 @@ MD
 
 echo "$SESSION_ID" > "$ROOT/current"
 
-GITIGNORE="$PROJECT_DIR/.gitignore"
-if ! { [[ -f "$GITIGNORE" ]] && grep -qxF '.tama-cc-devflow/' "$GITIGNORE"; }; then
-  printf '\n.tama-cc-devflow/\n' >> "$GITIGNORE"
-fi
-
 echo "$DIR"

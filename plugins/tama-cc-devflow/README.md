@@ -49,6 +49,15 @@ scripts/guard-write-scope.py    PreToolUse hook
 
 `git`、`gh`(認証済み)、`python3`。
 
+## セットアップ
+
+プラグインは対象プロジェクトの `.gitignore` に手を加えない。`.tama-cc-devflow/` を global gitignore で無視する。
+
+```
+git config --global core.excludesFile ~/.gitignore_global   # 未設定の場合
+echo '**/.tama-cc-devflow/' >> ~/.gitignore_global
+```
+
 ## ローカル開発
 
 ```
