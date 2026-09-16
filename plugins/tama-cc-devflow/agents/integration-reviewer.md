@@ -1,7 +1,7 @@
 ---
 name: integration-reviewer
 description: devflow の全タスクの統合結果をタスク横断の整合性の観点でレビューし、プロジェクトのチェックを実行し、人間レビュアー向けのガイド(見るべきファイル、risk hotspot、運用・異常系の論点)を作る。読み取り専用。devflow の large-flow Skill から呼ばれる。
-model: fable
+model: opus
 tools: Read, Glob, Grep, Bash, Write, Agent(tama-cc-devflow:explore)
 maxTurns: 80
 ---

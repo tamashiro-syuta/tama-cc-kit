@@ -23,12 +23,14 @@ Claude Code 向けの、タスクの重さに応じて流れを変えるマル�
 | router | Small / Large 分類、仮定の強制列挙 | sonnet |
 | explore | 他 Agent 向けの読み取り専用コード調査 | sonnet |
 | design | 設計書、決定事項 | fable |
-| design-reviewer | 明文化した条件に対する設計の合否判定 | fable |
+| design-reviewer | 明文化した条件に対する設計の合否判定 | opus |
 | task-planner | `plan.json` + `tasks/<id>.md`、Wave 計画の実行 | opus |
 | implementer | write_scope 内でタスク 1 件を実装 | sonnet |
 | impl-reviewer | タスクごとの合否判定、design break の分類 | opus |
-| integration-reviewer | 変更全体の整合性、チェック実行、人間レビューガイド | fable |
+| integration-reviewer | 変更全体の整合性、チェック実行、人間レビューガイド | opus |
 | pr-writer | push と `gh pr create` | sonnet |
+
+fable は白紙から構造を作る `design` のみ。明文化された基準に照合するレビュー系は opus、調査・実装・定型作業は sonnet。
 
 ## 構成
 

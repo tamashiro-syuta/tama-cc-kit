@@ -335,7 +335,7 @@
       <text x="265" y="60" text-anchor="middle" class="mono">fable</text>
       <rect class="node agent" x="460" y="24" width="150" height="48" rx="4"/>
       <text x="535" y="44" text-anchor="middle" class="strong">design-reviewer</text>
-      <text x="535" y="60" text-anchor="middle" class="mono">fable</text>
+      <text x="535" y="60" text-anchor="middle" class="mono">opus</text>
       <line class="edge" x1="340" y1="40" x2="458" y2="40" marker-end="url(#ar2)"/>
       <text x="400" y="36" text-anchor="middle" class="mono">design.md</text>
       <line class="edge" x1="460" y1="58" x2="342" y2="58" marker-end="url(#ar2)"/>
@@ -392,7 +392,7 @@
       <text x="250" y="452" class="mono">E  phase: integration</text>
       <rect class="node agent" x="250" y="460" width="300" height="48" rx="4"/>
       <text x="400" y="480" text-anchor="middle" class="strong">integration-reviewer</text>
-      <text x="400" y="496" text-anchor="middle" class="mono">fable</text>
+      <text x="400" y="496" text-anchor="middle" class="mono">opus</text>
       <text x="250" y="528" class="small">タスク横断の整合性、テスト / lint / 型チェック全体、要件カバレッジ、人間レビューガイドの作成</text>
       <path class="edge dashed" d="M550,484 H690 V360 H612" marker-end="url(#ar2)"/>
       <text x="698" y="424" class="mono">FAIL → 再実装 1 回</text>
@@ -566,11 +566,11 @@
       <tr><td><code>router</code></td><td>Small / Large 分類。仮定の強制列挙</td><td class="model">sonnet</td><td><code>router.md</code></td></tr>
       <tr><td><code>explore</code></td><td>他 Agent 向けの読み取り専用コード調査</td><td class="model">sonnet</td><td>なし</td></tr>
       <tr><td><code>design</code></td><td>設計書と決定事項。却下案、影響範囲、異常系、ロールバック。Open questions は人間判断が必要なものだけ推奨回答付き</td><td class="model">fable</td><td><code>design/design.md</code>, <code>decisions.md</code></td></tr>
-      <tr><td><code>design-reviewer</code></td><td>合格条件 10 項目に対する PASS / FAIL 判定</td><td class="model">fable</td><td><code>reviews/design-r&lt;N&gt;.md</code></td></tr>
+      <tr><td><code>design-reviewer</code></td><td>合格条件 10 項目に対する PASS / FAIL 判定</td><td class="model">opus</td><td><code>reviews/design-r&lt;N&gt;.md</code></td></tr>
       <tr><td><code>task-planner</code></td><td>タスク分解、依存関係、scope。<code>plan-waves.py</code> の実行</td><td class="model">opus</td><td><code>plan.json</code>, <code>tasks/&lt;id&gt;.md</code></td></tr>
       <tr><td><code>implementer</code></td><td>タスク 1 件を write_scope 内で実装。コミットしない</td><td class="model">sonnet</td><td>write_scope 内のソース, <code>tasks/&lt;id&gt;.result.md</code></td></tr>
       <tr><td><code>impl-reviewer</code></td><td>受け入れ条件の検証、テスト実行、design break の分類</td><td class="model">opus</td><td><code>reviews/&lt;id&gt;-r&lt;N&gt;.md</code></td></tr>
-      <tr><td><code>integration-reviewer</code></td><td>変更全体の整合性、チェック実行、人間レビューガイド</td><td class="model">fable</td><td><code>reviews/integration.md</code></td></tr>
+      <tr><td><code>integration-reviewer</code></td><td>変更全体の整合性、チェック実行、人間レビューガイド</td><td class="model">opus</td><td><code>reviews/integration.md</code></td></tr>
       <tr><td><code>pr-writer</code></td><td>push と <code>gh pr create</code></td><td class="model">sonnet</td><td><code>pr-body.md</code></td></tr>
     </tbody>
   </table>

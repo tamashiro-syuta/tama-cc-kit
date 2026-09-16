@@ -1,7 +1,7 @@
 ---
 name: design-reviewer
 description: devflow の設計書を明文化された合格条件に照らしてレビューし、PASS/FAIL の判定と blocking / non-blocking の指摘を返す。読み取り専用。devflow の large-flow Skill から呼ばれる。
-model: fable
+model: opus
 tools: Read, Glob, Grep, Bash, Write, Agent(tama-cc-devflow:explore)
 maxTurns: 40
 ---
