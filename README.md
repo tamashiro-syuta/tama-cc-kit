@@ -13,6 +13,32 @@ Claude Code plugin の marketplace。
 /plugin install tama-cc-devflow@tama-cc-kit
 ```
 
+## 更新
+
+marketplace の更新と plugin の更新は別。main に push した後、両方を順に実行する。
+
+```
+/plugin marketplace update tama-cc-kit
+/plugin update tama-cc-devflow@tama-cc-kit
+```
+
+ターミナルからは同じ操作を `claude plugin` で行える。
+
+```
+claude plugin marketplace update tama-cc-kit
+claude plugin update tama-cc-devflow@tama-cc-kit
+```
+
+## その他の操作
+
+```
+/plugin list                                  # インストール済み plugin の一覧
+/plugin disable tama-cc-devflow@tama-cc-kit   # 無効化(設定は残る)
+/plugin enable tama-cc-devflow@tama-cc-kit
+/plugin uninstall tama-cc-devflow@tama-cc-kit
+/plugin marketplace remove tama-cc-kit
+```
+
 ## 開発
 
 ```
