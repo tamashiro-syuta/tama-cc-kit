@@ -48,7 +48,7 @@ approve / request changes / abort を尋ね、待つ。「request changes」の�
 2. `ready` の各 id について `status.py task <id> running`。id ごとに `tama-cc-devflow:implementer` を **1 つのメッセージで** 呼び、並列実行させる。各 implementer には自身の `TASK_ID` とラウンド番号(`review_rounds + 1`)を渡す。
 3. implementer が返るたびに `status.py task <id> review` にし、`tama-cc-devflow:impl-reviewer` を `TASK_ID` と `ROUND = review_rounds`(`review` 遷移で既に +1 済み)で呼ぶ。異なるタスクのレビューも並列でよい。
 4. タスクごとに reviewer の返答を読む:
-   - `PASS` かつ `design_break: none` -> `status.py task <id> done`。そのタスクのファイルをコミット: `git add -- <write_scope paths>` の後、リポジトリの規約に従い、タスク名を含めたメッセージで `git commit`。`.tama-cc-devflow/` は絶対にコミットしない。
+   - `PASS` かつ `design_break: none` -> `status.py task <id> done`。この段階ではコミットしない。変更は作業ツリーに残し、コミットは F の人間承認後に G でまとめて積む。
    - `FAIL` かつ `review_rounds < 3` -> `status.py task <id> running` にし、implementer を再度呼ぶ(再作業ラウンド)。その後ステップ 3 へ。
    - `FAIL` かつ `review_rounds == 3` -> `status.py task <id> blocked`。未解決の blocking 指摘の要約を `human_decisions_required` に追加する。
    - `design_break: continue` -> PASS/FAIL として通常通り扱う。逸脱を `decisions.md` に記録する。
@@ -58,7 +58,7 @@ approve / request changes / abort を尋ね、待つ。「request changes」の�
 6. 停止条件。人間に尋ねる前に、状況を `decisions.md` または `abort.md` に記録する。判断材料が不足している争点(なぜ blocking が解消しないか、どの前提が崩れたか)は、選択肢を提示する前に Skill `tama-cc-devflow:clarify` で 1 問ずつ確認する。その上で:
    - レビュー上限による block: 未解決の指摘、blocking / non-blocking、リスク、推奨アクションを提示する。選択肢: 人間が直して done にする(人間の宣言後に `status.py task <id> done`)、implementer に具体的な指示を与える(`tasks/<id>.md` の「Human feedback」に書き、`status.py set tasks.<id>.review_rounds 0` でそのタスクの `review_rounds` を 0 に戻し、pending にする)、中止。待つ。
    - 部分再設計: reviewer の assessment で名指しされたセクションだけを改訂するよう明示して `tama-cc-devflow:design` を呼び、`design-reviewer` を 1 ラウンド、その後人間が差分を承認する(B の差分版)。次に `plan-feedback.md` に再計画すべきタスクを書いて `task-planner` を呼ぶ。write_scope が影響を受けない `done` のタスクは `done` のまま。D を再開する。
-   - 全体再設計: phase を `design` にし、理由を `decisions.md` に書き、人間に説明する。現在のブランチ上で A をやり直す(完了済みの作業はコミット済みのまま先行作業になる)か、中止するかを尋ねる。待つ。
+   - 全体再設計: phase を `design` にし、理由を `decisions.md` に書き、人間に説明する。現在のブランチ上で A をやり直す(完了済みタスクの変更は未コミットのまま作業ツリーに残り、design Agent が現在の diff を先行作業として扱う)か、中止するかを尋ねる。待つ。
 
 ## E. 統合(phase: integration)
 
@@ -72,6 +72,6 @@ approve / request changes / abort を尋ね、待つ。「request changes」の�
 
 ## G. PR(phase: pr)
 
-`status.py set phase '"pr"'`。`tama-cc-devflow:pr-writer` を `BRANCH`、`BASE_BRANCH` 付きで呼ぶ。`status.py set pr_url '"<url>"'`、`status.py set phase '"done"'`。
+`status.py set phase '"pr"'`。`tama-cc-devflow:pr-writer` を `BRANCH`、`BASE_BRANCH` 付きで呼ぶ。pr-writer が `plan.json` の Wave 順・タスク順にタスク単位のコミットを積み、push し、PR を作る。`status.py set pr_url '"<url>"'`、`status.py set phase '"done"'`。
 
 人間への最終報告: PR の URL、実行したタスクと Wave、使ったレビューラウンド数、人間が解決した block、フォローアップに残した non-blocking 指摘、ホワイトボードの場所。

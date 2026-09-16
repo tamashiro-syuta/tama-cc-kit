@@ -142,7 +142,7 @@ flowchart TD
     approve -- approve --> planner
     approve -. request changes .-> design
     planner -- "plan.json / tasks/*.md" --> impl
-    ireview -- PASS → タスク単位に commit --> integ
+    ireview -- PASS --> integ
     integ -. FAIL → 再実装 1 回 .-> impl
     integ -- PASS · reviews/integration.md --> hreview
     hreview -- approve --> prw
@@ -154,10 +154,10 @@ flowchart TD
 | A | 設計中の疑問とレビュアーの質問は、まず design が答え、残りを人間に 1 問ずつ聞いてから改訂。レビューは最大 3 ラウンド |
 | B | 要約、インターフェース変更、異常系とロールバック、タスク分解案を提示。Open questions は A で解消済みが前提 |
 | C | `plan.json` と `tasks/*.md`。write_scope 競合を検出して Wave を割り当て、`devflow/<slug>` ブランチを作る |
-| D | Wave ごとに ready なタスクを最大 3 件並列。PASS でタスク単位に commit。design break は分類し、partial / full-redesign は止めて争点をヒアリングしてから人間が選ぶ |
+| D | Wave ごとに ready なタスクを最大 3 件並列。PASS で done にする(コミットはしない)。design break は分類し、partial / full-redesign は止めて争点をヒアリングしてから人間が選ぶ |
 | E | タスク横断の整合性、テスト / lint / 型チェック全体、要件カバレッジ、人間レビューガイドの作成 |
 | F | must-read files、risk hotspots、運用 / 異常系の論点、推奨する手動検証を提示。全部は読ませない |
-| G | push、`pr-body.md` 作成、`gh pr create`。設計決定と人間レビューガイドを PR 本文に転記。最終報告に PR URL、Wave とタスク、使ったレビューラウンド、人間が解決した block、残した non-blocking 指摘 |
+| G | plan.json の Wave 順にタスク単位で commit、push、`pr-body.md` 作成、`gh pr create`。設計決定と人間レビューガイドを PR 本文に転記。最終報告に PR URL、Wave とタスク、使ったレビューラウンド、人間が解決した block、残した non-blocking 指摘 |
 
 ### 設計書に必ず含めるもの
 
@@ -217,14 +217,14 @@ flowchart LR
     draft["Task draft<br/><small>tasks/T1.md</small>"]:::plain
     impl["implementer<br/><small>sonnet</small>"]:::agent
     review["impl-reviewer<br/><small>opus</small>"]:::agent
-    human["人間の確認<br/><small>PR 作成を承認</small>"]:::human
+    human["人間の確認<br/><small>コミットと PR 作成を承認</small>"]:::human
     prw["pr-writer<br/><small>sonnet</small>"]:::agent
     pr[PR]:::plain
     stop["停止<br/><small>(a) Large へ昇格 (b) 手で直す (c) 中止</small>"]:::human
 
     draft --> impl -- result.md --> review
     review -- FAIL · 1 回だけ --> impl
-    review -- PASS → commit --> human --> prw --> pr
+    review -- PASS --> human --> prw --> pr
     human -. "修正依頼(許容 1 回分として数える)" .-> impl
     review -. "2 回目も FAIL / design break / blocked" .-> stop
 ```
@@ -277,7 +277,7 @@ T4 は本来独立だが `src/ui/shared.ts` が T3 の write_scope と重なる�
 | `implementer` | タスク 1 件を write_scope 内で実装。コミットしない | sonnet | write_scope 内のソース, `tasks/<id>.result.md` |
 | `impl-reviewer` | 受け入れ条件の検証、テスト実行、design break の分類 | opus | `reviews/<id>-r<N>.md` |
 | `integration-reviewer` | 変更全体の整合性、チェック実行、人間レビューガイド | opus | `reviews/integration.md` |
-| `pr-writer` | push と `gh pr create` | sonnet | `pr-body.md` |
+| `pr-writer` | タスク単位の commit、push、`gh pr create` | sonnet | `pr-body.md` |
 
 Agent の返答は数行の固定フォーマット(例: `verdict: PASS|FAIL`、`blocking: <count>`)に限られる。Orchestrator はそれと `status.json` だけを見て次の遷移を決める。ファイルの内容はプロンプトに貼らず、Agent が自分で読む。
 
@@ -470,14 +470,14 @@ flowchart TD
     ph -- aborted --> ab["abort.md を見せて続行するか尋ねる"]:::human
     ph -- その他 --> reset["reset-running<br/>claude_session_id を付け替え"]
     reset --> tree{"作業ツリーの未コミット変更"}
-    tree -- "中断タスクの write_scope 内のみ" --> keep["保持して implementer が続きから"]
+    tree -- "タスクの write_scope 内のみ" --> keep["保持して implementer が続きから"]
     tree -- "scope 外にもある" --> ask["止めて人間に尋ねる"]:::human
     keep --> flow["size に応じて small-flow / large-flow<br/><small>記録された phase から再入。完了済みは飛ばす</small>"]
 ```
 
 1. `status.py summary` で phase を確認する。`done` なら終了、`aborted` なら `abort.md` を見せて続行するか尋ねる。
 2. `reset-running` で中断していたタスクを `pending` に戻し、`claude_session_id` を今のセッションに付け替える(write guard の所有者が変わる)。
-3. 作業ツリーを確認する。中断タスクの write_scope 内の未コミット変更は保持し、implementer が続きから作業する。それ以外の未コミット変更があれば止めて人間に尋ねる。
+3. 作業ツリーを確認する。タスクの変更は pr phase まで未コミットのまま残る設計なので、done / 中断タスクの write_scope 内の未コミット変更は保持し、implementer が続きから作業する。write_scope 外の未コミット変更があれば止めて人間に尋ねる。
 4. `size` に応じて small-flow / large-flow を呼ぶ。両 Skill は再入可能で、記録された phase から続行し、完了済みの作業は飛ばす。
 
 回復不能な失敗時は phase を `aborted` にして `abort.md` に経緯を書く。ブランチは調査用に残し、`git checkout <base_branch>` で戻れることを人間に伝える。

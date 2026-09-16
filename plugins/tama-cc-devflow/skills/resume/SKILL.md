@@ -25,6 +25,6 @@ allowed-tools:
 
 1. `status.py summary`。phase が `done` ならその旨を伝えて終了。`aborted` なら `SESSION_DIR/abort.md` を見せ、それでも続行するか尋ねる。
 2. `CLAUDE_SESSION_ID=${CLAUDE_SESSION_ID} python3 "${CLAUDE_PLUGIN_ROOT}/scripts/status.py" reset-running` を実行し、中断したタスクをやり直し可能にし、この Claude セッションが実行を所有するようにする。
-3. 作業ツリーを確認: `git status --porcelain` と `git branch --show-current`。`status.json.branch` が設定済みで checkout されていなければ `git checkout <branch>`。`running` / `review` だったタスクの write_scope 内にある未コミット変更は中断した作業なので保持する。implementer は現在のファイルから続きを行う。それ以外の場所の未コミット変更があれば停止して人間に尋ねる。
+3. 作業ツリーを確認: `git status --porcelain` と `git branch --show-current`。`status.json.branch` が設定済みで checkout されていなければ `git checkout <branch>`。タスクの変更は pr phase まで未コミットのまま作業ツリーに残る設計なので、`done` / `running` / `review` だったタスクの write_scope 内にある未コミット変更は保持する。implementer は現在のファイルから続きを行う。write_scope 外の未コミット変更があれば停止して人間に尋ねる。
 4. どこで止まったか、次に何が起きるかを 5 行で人間に伝える。ステップ 3 で質問が生じていなければ待たずに進む。
 5. `size` に応じて Skill `tama-cc-devflow:small-flow` または `tama-cc-devflow:large-flow` を呼ぶ。これらは再入可能で、記録された phase から続行する。
