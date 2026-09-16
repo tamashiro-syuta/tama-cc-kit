@@ -1,6 +1,6 @@
 # tama-cc-devflow
 
-Claude Code 向けの、タスクの重さに応じて流れを変えるマルチ Agent 開発フロー。
+Claude Code 向けの、タスクの重さに応じて流れを変えるマルチ Agent 開発フロー。図解付きの詳細は [docs/tama-cc-devflow.md](../../docs/tama-cc-devflow.md)。
 
 - タスクを **Small** / **Large** に振り分ける。Router は「実装者が暗黙に置くことになる仮定」を列挙し、影響の大きい仮定が 1 つでもあれば Large に倒す。迷ったら Large。人間に聞くべき質問は grill-me 形式(1 問ずつ、推奨回答付き)でヒアリングする。
 - **Large**: design Agent(疑問があれば grill-me 形式で人間にヒアリング) -> design reviewer(最大 3 ラウンド。レビュアーの質問に design が答えられなければヒアリング) -> 人間の承認 -> task planner(明示的な `depends_on` / `write_scope`) -> Wave 単位の並列実装(同時 3 件まで)とタスクごとの reviewer ループ(最大 3 ラウンド) -> 統合レビュー -> 人間レビューガイド -> PR。
