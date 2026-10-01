@@ -14,10 +14,10 @@ SESSION_DIR/
   context.md           依頼内容、要件、制約、関連ファイル、人間への確認結果
   decisions.md         重要な決定だけ: "## Dn: title" / "- Decision:" / "- Reason:"
   router.md            Router の判定、仮定一覧、Task draft(Small)
-  design/design.md     設計書(Large)
-  design/human-feedback.md   設計に対する人間の修正依頼(Large、任意)
-  plan.json            タスクのメタデータ(Large)
-  plan-feedback.md     Orchestrator から task-planner へのフィードバック(Large、任意)
+  design/design.md     設計書(Medium は 5 セクションの軽量版、Large は 12 セクション。先頭行 "Template: medium|large")
+  design/human-feedback.md   設計に対する人間の修正依頼(Medium / Large、任意)
+  plan.json            タスクのメタデータ(Medium / Large)
+  plan-feedback.md     Orchestrator から task-planner へのフィードバック(Medium / Large、任意)
   tasks/<id>.md        タスク定義
   tasks/<id>.result.md タスクごとの implementer の結果
   reviews/design-r<N>.md      設計レビュー N ラウンド目
@@ -33,7 +33,7 @@ SESSION_DIR/
   "session_id": "20260915-013000-add-export",
   "claude_session_id": "<この実行を所有する Claude Code の session id>",
   "created_at": "...", "updated_at": "...",
-  "size": null | "small" | "large",
+  "size": null | "small" | "medium" | "large",
   "phase": "init|routing|clarify|design|design_review|design_approval|planning|implementation|integration|human_review|pr|done|aborted",
   "branch": "devflow/add-export", "base_branch": "main",
   "review_rounds": { "design": 0 },
@@ -65,8 +65,11 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/plan-waves.py"                 # plan.jso
 
 ## 上限
 
-- 設計レビュー: 3 ラウンド。タスクごとの実装レビュー: 3 ラウンド。Small フロー: 1 ラウンド。
+- Large: 設計レビュー 3 ラウンド、タスクごとの実装レビュー 3 ラウンド、planner 差し戻し 2 回。
+- Medium: 設計レビュー 2 ラウンド、タスクごとの実装レビュー 2 ラウンド、planner 差し戻し 1 回。タスク分解は 4 件以内(超えたら人間に分割を提示)。
+- Small: 実装レビュー 2 ラウンド(再作業 1 回)。
 - 同時実行する implementer: 3。
+- 上限に達したときの選択肢に「上位サイズへ昇格」を含める(Small -> Medium、Medium -> Large)。
 - 人間へのヒアリング(clarify Skill)には回数上限を設けない。上限があるのは Agent 同士のループだけ。
 - 上限に達したらループを続けない。未解決の指摘、blocking / non-blocking の区別、残存リスク、推奨する次のアクションをまとめ、タスクを `blocked` にする(または `human_decisions_required` に追加する)。判断は人間に渡す。
 
@@ -76,4 +79,4 @@ PreToolUse hook が、この Claude セッションが所有するセッショ�
 
 ## Agent の呼び出し
 
-Agent のプロンプトには必ず絶対パスの `SESSION_DIR`、`PLUGIN_ROOT`(`${CLAUDE_PLUGIN_ROOT}`)、セッション id を渡す。加えて、その Agent に必要な id だけを渡す(`TASK_ID`、`ROUND`、`BRANCH`、`BASE_BRANCH`)。ファイルの内容をプロンプトに貼らない。Agent が自分で読む。独立した implementer は 1 つのメッセージでまとめて呼び、並列実行させる。
+Agent のプロンプトには必ず絶対パスの `SESSION_DIR`、`PLUGIN_ROOT`(`${CLAUDE_PLUGIN_ROOT}`)、セッション id を渡す。加えて、その Agent に必要な id だけを渡す(`TASK_ID`、`ROUND`、`BRANCH`、`BASE_BRANCH`、design / design-reviewer には `TEMPLATE`)。Medium フローでは design を `model: opus` で呼ぶ(fable は Large のみ)。ファイルの内容をプロンプトに貼らない。Agent が自分で読む。独立した implementer は 1 つのメッセージでまとめて呼び、並列実行させる。

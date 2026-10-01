@@ -2,8 +2,9 @@
 
 Claude Code 向けの、タスクの重さに応じて流れを変えるマルチ Agent 開発フロー。図解付きの詳細は [docs/tama-cc-devflow.md](../../docs/tama-cc-devflow.md)。
 
-- タスクを **Small** / **Large** に振り分ける。Router は「実装者が暗黙に置くことになる仮定」を列挙し、影響の大きい仮定が 1 つでもあれば Large に倒す。迷ったら Large。人間に聞くべき質問は grill-me 形式(1 問ずつ、推奨回答付き)でヒアリングする。
-- **Large**: design Agent(疑問があれば grill-me 形式で人間にヒアリング) -> design reviewer(最大 3 ラウンド。レビュアーの質問に design が答えられなければヒアリング) -> 人間の承認 -> task planner(明示的な `depends_on` / `write_scope`) -> Wave 単位の並列実装(同時 3 件まで)とタスクごとの reviewer ループ(最大 3 ラウンド) -> 統合レビュー -> 人間レビューガイド -> PR。
+- タスクを **Small** / **Medium** / **Large** に振り分ける。Large は「既存のものを壊すか、戻せるか」(既存の呼び出し元がある API の破壊的変更、既存テーブルの挙動変更、認証・認可、不可逆な副作用)で grep により決める。Small は既存パターンの踏襲で 1 人が閉じられるもの。Router は「実装者が暗黙に置くことになる仮定」を列挙し、影響の大きい仮定があれば grill-me 形式(1 問ずつ、推奨回答付き)で人間にヒアリングする。
+- **Large**: design Agent(fable、12 セクション) -> design reviewer(最大 3 ラウンド) -> 人間の承認 -> task planner(明示的な `depends_on` / `write_scope`) -> Wave 単位の並列実装(同時 3 件まで)とタスクごとの reviewer ループ(最大 3 ラウンド) -> 統合レビュー -> 人間レビューガイド -> PR。
+- **Medium**: design Agent(opus、5 セクションの軽量版、タスク 4 件以内。超えたら分割案を人間に提示) -> design reviewer(1 往復) -> 人間の承認 -> task planner -> Wave 単位の並列実装とタスクごとの reviewer(1 往復) -> 統合レビュー -> 人間レビューガイド -> PR。design break は分類せず人間に聞く。
 - **Small**: implementer 1 人、レビュー 1 往復、人間の確認、コミット、PR。
 - 状態は `.tama-cc-devflow/<session>/` 配下のファイル(git 管理外)に置く。Agent は必要なファイルだけ読む。実行は `status.json` から再開できる。
 - `PreToolUse` hook が、実装中はタスクの `write_scope` 外の編集を、それ以外の phase ではソースへの編集をすべてブロックする。
@@ -20,9 +21,9 @@ Claude Code 向けの、タスクの重さに応じて流れを変えるマル�
 
 | Agent | 役割 | モデル |
 |---|---|---|
-| router | Small / Large 分類、仮定の強制列挙 | sonnet |
+| router | Small / Medium / Large 分類、仮定の強制列挙 | sonnet |
 | explore | 他 Agent 向けの読み取り専用コード調査 | sonnet |
-| design | 設計書、決定事項 | fable |
+| design | 設計書、決定事項 | fable(Large)/ opus(Medium) |
 | design-reviewer | 明文化した条件に対する設計の合否判定 | opus |
 | task-planner | `plan.json` + `tasks/<id>.md`、Wave 計画の実行 | opus |
 | implementer | write_scope 内でタスク 1 件を実装 | sonnet |
@@ -30,21 +31,21 @@ Claude Code 向けの、タスクの重さに応じて流れを変えるマル�
 | integration-reviewer | 変更全体の整合性、チェック実行、人間レビューガイド | opus |
 | pr-writer | push と `gh pr create` | sonnet |
 
-fable は白紙から構造を作る `design` のみ。明文化された基準に照合するレビュー系は opus、調査・実装・定型作業は sonnet。
+fable は白紙から構造を作る Large の `design` のみ。明文化された基準に照合するレビュー系は opus、調査・実装・定型作業は sonnet。
 
 ## 構成
 
 ```
-skills/run, resume, status      ユーザーが起動する入口
-skills/workboard                ホワイトボードの Schema と規約(Agent 専用)
-skills/clarify                  grill-me 形式ヒアリング(1 問ずつ、推奨回答付き。Agent 専用)
-skills/small-flow, large-flow   オーケストレーション手順(Agent 専用、再入可能)
-agents/*.md                     Sub Agent 定義
-hooks/hooks.json                write_scope guard
-scripts/init-session.sh         セッションディレクトリの作成
-scripts/status.py               status.json の読み書き、実行可能タスクの列挙
-scripts/plan-waves.py           plan.json の検証、write_scope 競合の検出、Wave 割当
-scripts/guard-write-scope.py    PreToolUse hook
+skills/run, resume, status                   ユーザーが起動する入口
+skills/workboard                             ホワイトボードの Schema と規約(Agent 専用)
+skills/clarify                               grill-me 形式ヒアリング(1 問ずつ、推奨回答付き。Agent 専用)
+skills/small-flow, medium-flow, large-flow   オーケストレーション手順(Agent 専用、再入可能)
+agents/*.md                                  Sub Agent 定義
+hooks/hooks.json                             write_scope guard
+scripts/init-session.sh                      セッションディレクトリの作成
+scripts/status.py                            status.json の読み書き、実行可能タスクの列挙
+scripts/plan-waves.py                        plan.json の検証、write_scope 競合の検出、Wave 割当
+scripts/guard-write-scope.py                 PreToolUse hook
 ```
 
 ## 必要なもの

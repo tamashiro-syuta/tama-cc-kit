@@ -12,9 +12,9 @@ user-invocable: false
 
 設計中に人間の判断が必要な疑問が出たら、その場で grill-me 形式のヒアリング(Skill `tama-cc-devflow:clarify`)を行う。設計レビュー後にレビュアーから出た質問も、まず design Agent が答え、答えられないものや人間の判断が必要とされたものをヒアリングする。
 
-1. `status.py set phase '"design"'`。`tama-cc-devflow:design` を呼ぶ。
+1. `status.py set phase '"design"'`。`tama-cc-devflow:design` を `TEMPLATE=large` で呼ぶ(Medium からの昇格時は、既存の medium テンプレートの設計書と作業ツリーの未コミット変更を先行作業として読ませる)。
 2. design の返答の `open_questions_for_human > 0` の場合: Skill `tama-cc-devflow:clarify` を `design/design.md` の Open questions(人間の判断が必要なもの)を入力として実行する。全問解消後、ステップ 1 に戻って design に改訂させる(design は context.md の Clarifications と decisions.md を読む)。`open_questions_for_human == 0` になるまで繰り返す。
-3. `status.py set phase '"design_review"'`。`N = review_rounds.design + 1` とし、`status.py set review_rounds.design N`。`tama-cc-devflow:design-reviewer` を `ROUND=N` で呼ぶ。
+3. `status.py set phase '"design_review"'`。`N = review_rounds.design + 1` とし、`status.py set review_rounds.design N`。`tama-cc-devflow:design-reviewer` を `ROUND=N`、`TEMPLATE=large` で呼ぶ。
 4. レビュアーが `human_decision_required: yes` を返した場合(PASS / FAIL を問わず): ステップ 1 に戻り、design にレビューの質問へ回答させる。design は自分で答えられるものは設計書に反映し、答えられないものを Open questions に残す。以降はステップ 2 のルールでヒアリングし、改訂後にステップ 3 でレビューし直す。この経路の再レビューは FAIL ループではないため `review_rounds.design` を増やさない(ステップ 3 の加算を省く)。
 5. `verdict: FAIL` かつ `N < 3`: ステップ 1 へ戻る(design が `reviews/design-r<N>.md` を読む)。
 6. `verdict: FAIL` かつ `N == 3`: ループを止める。`reviews/design-r3.md` の未解決 blocking 指摘と設計者・レビュアーの争点を、Skill `tama-cc-devflow:clarify` で 1 問ずつ人間に確認する(各争点に推奨する落とし所を付ける)。解消した内容を `design/human-feedback.md` に書き、`review_rounds.design` を 0 に戻してステップ 1 へ。争点がヒアリングで解消しない場合のみ、現状の設計を受け入れるか中止するかを尋ねる。待つ。

@@ -1,6 +1,6 @@
 # tama-cc-devflow
 
-タスクの重さに応じて流れを変えるマルチ Agent 開発フロー。依頼を Small / Large に振り分け、設計・実装・レビューを Sub Agent に回し、人間の判断が要る場所でだけ止まり、最後に PR を作る。
+タスクの重さに応じて流れを変えるマルチ Agent 開発フロー。依頼を Small / Medium / Large に振り分け、設計・実装・レビューを Sub Agent に回し、人間の判断が要る場所でだけ止まり、最後に PR を作る。
 
 ```
 /plugin marketplace add tamashiro-syuta/tama-cc-kit
@@ -14,6 +14,7 @@
 - [設計のポイント](#設計のポイント)
 - [全体の流れ](#全体の流れ)
 - [Large フロー](#large-フロー)
+- [Medium フロー](#medium-フロー)
 - [人間へのヒアリング](#人間へのヒアリングgrill-me-形式)
 - [Small フロー](#small-フロー)
 - [Wave と並列実装](#wave-と並列実装)
@@ -28,8 +29,8 @@
 
 ## 設計のポイント
 
-**仮定の強制列挙で振り分ける**
-Router は「実装できるか」ではなく「実装者が誰にも聞かずに置くことになる仮定」を全部書き出す。影響度 high の仮定が 1 つでもあれば Large。迷ったら Large。
+**壊すかどうかで振り分け、仮定を強制列挙する**
+Large は「既存のものを壊すか、戻せるか」で grep により決める。Router は「実装できるか」ではなく「実装者が誰にも聞かずに置くことになる仮定」を全部書き出し、影響度 high の仮定は人間に聞く。既存パターンの踏襲で 1 人が閉じられるものだけ Small、残りは Medium。Small / Medium で迷ったら Medium。
 
 **状態はファイル、会話ではない**
 Agent は会話履歴を受け取らない。`.tama-cc-devflow/<session>/` のホワイトボードから必要なファイルだけ読み、決められたファイルだけ書く。
@@ -55,41 +56,46 @@ flowchart LR
     router["router<br/><small>sonnet</small>"]:::agent
     judge{判定}:::human
     small["Small フロー<br/><small>implementer 1 人 · レビュー 1 往復</small>"]:::agent
+    medium["Medium フロー<br/><small>軽量設計 → 計画 → Wave 実装 → 統合<br/>レビューは各 1 往復</small>"]:::agent
     large["Large フロー<br/><small>設計 → 計画 → Wave 実装 → 統合</small>"]:::agent
     pr[PR]:::plain
 
     req --> run -- context.md --> router -- router.md --> judge
     judge -- small --> small --> pr
+    judge -- medium --> medium --> pr
     judge -- large --> large --> pr
     judge -. "質問は grill-me 形式で 1 問ずつ<br/>(Router との往復は 2 回まで)" .-> router
 ```
 
-Router が書く `router.md` には一発 Large 条件、Small 条件の採点、仮定一覧、人間への質問、判定が入る。Small のときは Task draft も書く。small 判定は人間が large に上書きできる。
+Router が書く `router.md` には Large 条件の確認、仮定一覧、Small 条件の採点、人間への質問、判定が入る。Small のときは Task draft も書く。人間は判定を上位のサイズに上書きできる(下位への上書きは不可)。
 
 ### Router の判定ルール
+
+軸は「何を触るか」ではなく「**既存のものを壊すか、戻せるか**」。Large 条件は grep で機械的に決め、新規テーブル・nullable カラム追加・新規エンドポイント・新規モジュールはそれだけでは Large にしない。
 
 ```mermaid
 flowchart TD
     classDef human fill:#fbeedc,stroke:#b25e0a,stroke-width:2px,color:#7a3f00
 
-    q1{"一発 Large 条件に該当?<br/><small>Public API 破壊 / インフラ / DB スキーマ / 認証・認可 / 外部連携</small>"}
+    q1{"既存の依存先を壊す / 不可逆 / 認証・認可?<br/><small>既存の呼び出し元がある API・イベント・スキーマの破壊的変更<br/>既存テーブルの挙動を変える変更(RLS policy、制約、マイグレーション、バックフィル)<br/>認証・認可<br/>revert で戻らない副作用(本番インフラ、課金、送信系)</small>"}
     q2{"影響度 high の仮定が<br/>1 つ以上ある?"}
-    q3{"Small 条件 9 項目に<br/>no / unclear が 2 つ以上?"}
+    q3{"Small 条件 4 項目が<br/>すべて yes?"}
     L[Large]:::human
+    M[Medium]
     S[Small]
 
-    q1 -- yes --> L
+    q1 -- "yes / 確認できない" --> L
     q1 -- no --> q2
-    q2 -- yes --> L
+    q2 -- "yes → clarify で解消" --> M
     q2 -- no --> q3
-    q3 -- yes --> L
-    q3 -- no --> S
+    q3 -- yes --> S
+    q3 -- no --> M
 ```
 
-1. **一発 Large 条件**: Public API の破壊的変更、インフラ変更、DB スキーマ変更、認証 / 認可、外部サービス連携。1 つでも該当すれば Large。
-2. **Small 条件**: 1〜3 ファイルに閉じる、既存パターンを踏襲できる、新しい設計判断がない、など 9 項目を yes / no / unclear で採点。
-3. **仮定の強制列挙**: エッジケース、命名、配置場所、データ形状、エラー時の挙動、互換性、テストについて暗黙の仮定を列挙し、high / medium / low を付ける。
-4. **判定**: 一発条件に該当、high の仮定が 1 つ以上、Small 条件に no / unclear が 2 つ以上、のいずれかで Large。
+1. **Large 条件**: 既存の呼び出し元がある Public API / イベント / スキーマの破壊的変更、既存テーブルの挙動を変える変更、認証 / 認可、revert で戻らない副作用。1 つでも該当すれば Large。Router は「この型・テーブル・エンドポイントを参照する既存コードがあるか」を grep で確認し `path:line` で示す。確認できなければ該当扱い。
+2. **仮定の強制列挙**: エッジケース、命名、配置場所、データ形状、エラー時の挙動、互換性、テストについて暗黙の仮定を列挙し、high / medium / low を付ける。high は人間への質問にし、clarify で解消する。解消後も Small にはしない。
+3. **Small 条件**: 1〜3 ファイルで 1 モジュールに閉じる、踏襲できる既存パターンがある、新しい設計判断がない、implementer 1 人で完結する、の 4 項目を yes / no / unclear で採点。
+4. **判定**: Large 条件に該当 → Large。high 仮定なし かつ Small 条件すべて yes → Small(Task draft を書く)。それ以外 → Medium。Small / Medium で迷ったら Medium。
 
 ## Large フロー
 
@@ -161,7 +167,101 @@ flowchart TD
 
 ### 設計書に必ず含めるもの
 
-design Agent は設計を 1 つに決め、代替案は Rejected alternatives にだけ書く。Summary、Requirements mapping、Chosen design、Impact、Error handling policy、Rollback policy、Observability、Task breakdown proposal、Open questions が必須で、該当なしでも "none" と明記する。改訂時は冒頭に Changes since last round を置き、以前の内容を黙って落とさない。Open questions には人間の判断が必要なものだけを推奨回答付きで書き、コードを調べれば分かることは自分で確定する。返答は `summary` と `open_questions_for_human` の 2 行に固定される。
+design Agent は設計を 1 つに決め、代替案は Rejected alternatives にだけ書く。Large(`TEMPLATE=large`)では Summary、Requirements mapping、Chosen design、Impact、Error handling policy、Rollback policy、Observability、Task breakdown proposal、Open questions が必須で、該当なしでも "none" と明記する。Medium(`TEMPLATE=medium`)は Summary、Chosen design、Impact、Task breakdown proposal(4 件以内、超えるなら Split proposal)、Open questions の 5 つ。設計書の先頭行に `Template:` を書き、design-reviewer が照合する。改訂時は冒頭に Changes since last round を置き、以前の内容を黙って落とさない。Open questions には人間の判断が必要なものだけを推奨回答付きで書き、コードを調べれば分かることは自分で確定する。返答は `summary`、`open_questions_for_human`、`task_count` の 3 行に固定される。
+
+## Medium フロー
+
+「設計判断は要るが、既存のものは壊さない」変更のためのフロー。Large と同じ骨格だが、設計書は 5 セクションの軽量版、Agent 同士のループは各 1 往復、design break は分類せず人間に聞く。設計時点でタスクが 4 件を超えたら分割案を人間に提示する。
+
+```mermaid
+flowchart TD
+    classDef agent stroke:#0f6e56,stroke-width:2px
+    classDef human fill:#fbeedc,stroke:#b25e0a,stroke-width:2px,color:#7a3f00
+
+    subgraph A["A · phase: design / design_review"]
+        design["design<br/><small>opus · 軽量テンプレート</small>"]:::agent
+        interview["人間: ヒアリング<br/><small>grill-me 形式 · 1 問ずつ</small>"]:::human
+        split["人間: 分割の判断<br/><small>タスク 5 件以上のとき<br/>分割する / Large へ / このまま進む</small>"]:::human
+        dreview["design-reviewer<br/><small>opus · 条件 5, 6 を除く</small>"]:::agent
+        design -- Open questions --> interview
+        interview -- "回答 → context.md / decisions.md" --> design
+        design -- "tasks > 4" --> split
+        split -- "分割: 残りを context.md の Follow-ups へ" --> design
+        design -- "open_questions == 0 · tasks ≤ 4" --> dreview
+        dreview -- "FAIL · 1 回だけ" --> design
+    end
+
+    subgraph B["B · phase: design_approval"]
+        approve["人間: 設計承認<br/><small>approve / request changes / abort<br/>2 回目も FAIL なら未解決 blocking を添える</small>"]:::human
+    end
+
+    subgraph C["C · phase: planning"]
+        planner["task-planner → plan-waves.py<br/><small>opus · 差し戻し 1 回</small>"]:::agent
+    end
+
+    subgraph D["D · phase: implementation"]
+        impl["implementer ×3<br/><small>sonnet · 並列</small>"]:::agent
+        ireview["impl-reviewer<br/><small>opus</small>"]:::agent
+        impl -- result.md --> ireview
+        ireview -- "FAIL · タスクごと 1 回だけ" --> impl
+    end
+
+    subgraph E["E · phase: integration"]
+        integ["integration-reviewer<br/><small>opus</small>"]:::agent
+    end
+
+    subgraph F["F · phase: human_review"]
+        hreview["人間: レビューガイドを確認<br/><small>approve / request changes / abort</small>"]:::human
+    end
+
+    subgraph G["G · phase: pr → done"]
+        prw["pr-writer<br/><small>sonnet</small>"]:::agent
+    end
+
+    stop["停止<br/><small>人間が選ぶ: 手で直す / 指示を与えて再実行 / Large へ昇格 / 中止</small>"]:::human
+
+    dreview -- "PASS / 2 回目" --> approve
+    split -. "Large へ" .-> L["Large フロー A へ<br/><small>size=large</small>"]
+    approve -- approve --> planner
+    approve -. request changes .-> design
+    planner -- "plan.json / tasks/*.md" --> impl
+    ireview -- PASS --> integ
+    ireview -. "2 回目も FAIL / design break" .-> stop
+    integ -. "FAIL → 再実装 1 回" .-> impl
+    integ -- "PASS · reviews/integration.md" --> hreview
+    hreview -- approve --> prw
+    hreview -. request changes .-> impl
+    prw --> pr[PR]
+```
+
+### Large との差分
+
+| 段階 | Large | Medium |
+|---|---|---|
+| 設計 | fable、12 セクション | opus、5 セクション(Summary / Chosen design / Impact / Task breakdown / Open questions)、タスク 4 件以内 |
+| 設計レビュー | 最大 3 ラウンド | 最大 2 ラウンド(1 往復)。異常系・ロールバックの条件なし |
+| 分割提示 | なし | タスク 5 件以上で人間に 3 択 |
+| 設計承認 | 人間 | 人間(異常系・ロールバックの提示なし) |
+| 計画 | planner 差し戻し 2 回 | 1 回 |
+| 実装レビュー | タスクごと最大 3 ラウンド | 最大 2 ラウンド(1 往復) |
+| design break | 4 分類、部分再設計あり | 即 `blocked`、人間に聞く |
+| 統合 / 人間レビュー / PR | 同じ | 同じ |
+
+人間が止まる回数は Large と同じ 2 回(分割提示が入れば 3 回)。短くなるのは設計書を書く時間と人間が読む時間、Router の調査量、依頼の大きさ。過去セッションの実測では reviewer ループは数分で、時間は Router・設計フェーズ・タスク数に消えていた(経緯は [tama-cc-devflow-medium.md](./tama-cc-devflow-medium.md))。
+
+### タスク 4 件超での分割提示
+
+design は Task breakdown が 5 件以上になるとき `Split proposal` に「今回やる 1 スライス(4 件以内、単独で PR にできるまとまり)」と「残り(スライスごとに 1 行)」を書き、返答に `task_count` を含める。Orchestrator は人間に 3 択を出す。
+
+- **分割する(推奨)**: 1 スライス目を今回のスコープにする。残りを `context.md` の Follow-ups に書き、design に改訂させる。PR 本文の残課題にも載せる
+- **Large へ昇格**: 大きいまま Large の機構で進める
+- **このまま Medium で進む**: 人間の明示的な上書き。`decisions.md` に記録する
+
+分割後のスライスは次の `/tama-cc-devflow:run` の依頼文にそのまま使える粒度で書く。
+
+### 上位サイズへの昇格
+
+Small は停止時に Medium へ、Medium は停止時に Large へ昇格できる。size と phase(`design`)を付け替えて上位のフロー Skill を呼ぶ。design Agent は既存の設計書と作業ツリーの未コミット変更を先行作業として読む。
 
 ## 人間へのヒアリング(grill-me 形式)
 
@@ -201,6 +301,8 @@ sequenceDiagram
 | `large-flow` A 設計レビュー後 | reviewer の `human_decision_required: yes` のうち design が答えられなかったもの | design が改訂し再レビュー。この再レビューはラウンド上限に数えない |
 | `large-flow` A 3 回 FAIL | 設計者とレビュアーの争点(推奨する落とし所付き) | `human-feedback.md` に書き、ラウンドを 0 に戻して改訂。解消しない時だけ受け入れ / 中止を選ぶ |
 | `large-flow` D 実装 block | blocking が解消しない理由、崩れた前提 | 選択肢(手で直す / 指示を与えて再実行 / 再設計 / 中止)を提示 |
+| `medium-flow` A 設計中 | `design.md` の Open questions | Large と同じ。レビューは 1 往復で、2 回目も FAIL なら争点を承認ゲートに添える |
+| `medium-flow` D 実装 block | blocking が解消しない理由、design break の内容 | 選択肢(手で直す / 指示を与えて再実行 / design break を受け入れる / Large へ昇格 / 中止)を提示 |
 
 ヒアリング中に phase は変えない(Router 段階だけ `clarify`)。clarify 自身は設計や計画を書き換えず、記録だけして呼び出し元が該当 Agent に改訂を頼む。
 
@@ -220,7 +322,7 @@ flowchart LR
     human["人間の確認<br/><small>コミットと PR 作成を承認</small>"]:::human
     prw["pr-writer<br/><small>sonnet</small>"]:::agent
     pr[PR]:::plain
-    stop["停止<br/><small>(a) Large へ昇格 (b) 手で直す (c) 中止</small>"]:::human
+    stop["停止<br/><small>(a) Medium へ昇格 (b) 手で直す (c) 中止</small>"]:::human
 
     draft --> impl -- result.md --> review
     review -- FAIL · 1 回だけ --> impl
@@ -265,14 +367,14 @@ T4 は本来独立だが `src/ui/shared.ts` が T3 の write_scope と重なる�
 
 ## Agent とモデル
 
-各 Agent は書いてよいファイルが 1 つか 2 つに固定されていて、それ以外は読むだけ。モデルは役割の重さで使い分ける。fable は白紙から構造を作る `design` のみ。明文化された基準に照合するレビュー系は opus、調査・実装・定型作業は sonnet。
+各 Agent は書いてよいファイルが 1 つか 2 つに固定されていて、それ以外は読むだけ。モデルは役割の重さで使い分ける。fable は白紙から構造を作る Large の `design` のみで、Medium の design は呼び出し時に opus へ上書きする。明文化された基準に照合するレビュー系は opus、調査・実装・定型作業は sonnet。
 
 | Agent | 役割 | モデル | 書くファイル |
 |---|---|---|---|
-| `router` | Small / Large 分類。仮定の強制列挙 | sonnet | `router.md` |
+| `router` | Small / Medium / Large 分類。Large 条件の grep 確認、仮定の強制列挙 | sonnet | `router.md` |
 | `explore` | 他 Agent 向けの読み取り専用コード調査 | sonnet | なし |
-| `design` | 設計書と決定事項。却下案、影響範囲、異常系、ロールバック。Open questions は人間判断が必要なものだけ推奨回答付き | fable | `design/design.md`, `decisions.md` |
-| `design-reviewer` | 合格条件 10 項目に対する PASS / FAIL 判定 | opus | `reviews/design-r<N>.md` |
+| `design` | 設計書と決定事項。Large は 12 セクション、Medium は 5 セクションでタスク 4 件以内(超えたら Split proposal)。Open questions は人間判断が必要なものだけ推奨回答付き | fable(Large)/ opus(Medium) | `design/design.md`, `decisions.md` |
+| `design-reviewer` | 合格条件 10 項目に対する PASS / FAIL 判定(Medium は異常系・ロールバックの 2 項目を除く) | opus | `reviews/design-r<N>.md` |
 | `task-planner` | タスク分解、依存関係、scope。`plan-waves.py` の実行 | opus | `plan.json`, `tasks/<id>.md` |
 | `implementer` | タスク 1 件を write_scope 内で実装。コミットしない | sonnet | write_scope 内のソース, `tasks/<id>.result.md` |
 | `impl-reviewer` | 受け入れ条件の検証、テスト実行、design break の分類 | opus | `reviews/<id>-r<N>.md` |
@@ -291,9 +393,9 @@ SESSION_DIR/
   context.md                  依頼原文、要件、制約、関連ファイル、人間への確認結果
   decisions.md                "## Dn: title" / "- Decision:" / "- Reason:" の決定だけ
   router.md                   判定、仮定一覧、Task draft(Small)
-  design/design.md            設計書(Large)
-  design/human-feedback.md    設計への人間の修正依頼(Large、任意)
-  plan.json                   タスクのメタデータ(Large)
+  design/design.md            設計書(Medium / Large。先頭行 "Template: medium|large")
+  design/human-feedback.md    設計への人間の修正依頼(Medium / Large、任意)
+  plan.json                   タスクのメタデータ(Medium / Large)
   plan-feedback.md            Orchestrator から task-planner への差し戻し(任意)
   tasks/<id>.md               タスク定義。Human feedback / Integration findings はここに追記
   tasks/<id>.result.md        implementer の結果
@@ -355,7 +457,7 @@ stateDiagram-v2
     routing --> clarify: 人間への質問あり
     clarify --> routing: 回答を反映して再判定(2 回まで)
     routing --> planning: small
-    routing --> design: large
+    routing --> design: medium / large
     design --> design_review
     design_review --> design: FAIL
     design_review --> design_approval: PASS
@@ -363,8 +465,8 @@ stateDiagram-v2
     design_approval --> planning: approve
     planning --> implementation
     implementation --> human_review: small · PASS
-    implementation --> integration: large · 全タスク done
-    implementation --> design: full-redesign
+    implementation --> integration: medium / large · 全タスク done
+    implementation --> design: full-redesign(large)/ 昇格
     integration --> implementation: FAIL(1 回)
     integration --> human_review: PASS
     human_review --> implementation: request changes
@@ -422,12 +524,15 @@ flowchart TD
 
 | 項目 | 上限 | 上限に達したら |
 |---|---|---|
-| Router とヒアリングの往復 | 2 回 | Large として扱い、未決の質問を設計フェーズのヒアリングに持ち越す |
+| Router とヒアリングの往復 | 2 回 | Medium 以上として扱い、未決の質問を設計フェーズのヒアリングに持ち越す |
 | 人間へのヒアリング(clarify) | なし | 上限があるのは Agent 同士のループだけ。同じ論点の言い換え再質問はしない |
-| 設計レビュー | 3 ラウンド(ヒアリング後の再レビューは数えない) | 争点を 1 問ずつヒアリングして改訂。解消しない時だけ「受け入れ / 中止」を選ぶ |
-| task-planner の差し戻し | 2 ラウンド | plan を人間に提示して判断を仰ぐ |
+| 設計レビュー(Large) | 3 ラウンド(ヒアリング後の再レビューは数えない) | 争点を 1 問ずつヒアリングして改訂。解消しない時だけ「受け入れ / 中止」を選ぶ |
+| 設計レビュー(Medium) | 2 ラウンド(1 往復) | 未解決の blocking を承認ゲートに添えて人間が判断 |
+| タスク分解(Medium) | 4 件 | 分割案を提示し、人間が「分割 / Large へ昇格 / このまま」を選ぶ |
+| task-planner の差し戻し | Large 2 ラウンド / Medium 1 ラウンド | plan を人間に提示して判断を仰ぐ |
 | タスクごとの実装レビュー(Large) | 3 ラウンド | タスクを `blocked` にし、人間が「手で直す / 指示を与えて再実行 / 中止」を選ぶ |
-| 実装レビュー(Small) | 1 回の再作業 | Large へ昇格 / 手で直す / 中止 |
+| タスクごとの実装レビュー(Medium) | 2 ラウンド(1 往復)。design break も即 blocked | 手で直す / 指示を与えて再実行 / design break を受け入れる / Large へ昇格 / 中止 |
+| 実装レビュー(Small) | 1 回の再作業 | Medium へ昇格 / 手で直す / 中止 |
 | 統合レビューの再作業 | 1 回 | 人間にエスカレーション |
 | 同時に動く implementer | 3 | 残りは次の `ready` で払い出す |
 
@@ -435,7 +540,7 @@ flowchart TD
 
 ### design break の扱い
 
-implementer が設計で固定された Public API、データモデル、モジュール責務、エラー契約の変更を必要とした場合、それを実行せず design break として報告する。impl-reviewer が分類し、Orchestrator が対応を変える。
+implementer が設計で固定された Public API、データモデル、モジュール責務、エラー契約の変更を必要とした場合、それを実行せず design break として報告する。impl-reviewer が分類し、Large では Orchestrator が分類に応じて対応を変える。Medium では分類に関わらずタスクを `blocked` にし、人間が「受け入れる / 指示を与えて再実行 / Large へ昇格 / 中止」を選ぶ。
 
 ```mermaid
 flowchart TD
@@ -472,13 +577,13 @@ flowchart TD
     reset --> tree{"作業ツリーの未コミット変更"}
     tree -- "タスクの write_scope 内のみ" --> keep["保持して implementer が続きから"]
     tree -- "scope 外にもある" --> ask["止めて人間に尋ねる"]:::human
-    keep --> flow["size に応じて small-flow / large-flow<br/><small>記録された phase から再入。完了済みは飛ばす</small>"]
+    keep --> flow["size に応じて small-flow / medium-flow / large-flow<br/><small>記録された phase から再入。完了済みは飛ばす</small>"]
 ```
 
 1. `status.py summary` で phase を確認する。`done` なら終了、`aborted` なら `abort.md` を見せて続行するか尋ねる。
 2. `reset-running` で中断していたタスクを `pending` に戻し、`claude_session_id` を今のセッションに付け替える(write guard の所有者が変わる)。
 3. 作業ツリーを確認する。タスクの変更は pr phase まで未コミットのまま残る設計なので、done / 中断タスクの write_scope 内の未コミット変更は保持し、implementer が続きから作業する。write_scope 外の未コミット変更があれば止めて人間に尋ねる。
-4. `size` に応じて small-flow / large-flow を呼ぶ。両 Skill は再入可能で、記録された phase から続行し、完了済みの作業は飛ばす。
+4. `size` に応じて small-flow / medium-flow / large-flow を呼ぶ。各 Skill は再入可能で、記録された phase から続行し、完了済みの作業は飛ばす。
 
 回復不能な失敗時は phase を `aborted` にして `abort.md` に経緯を書く。ブランチは調査用に残し、`git checkout <base_branch>` で戻れることを人間に伝える。
 
@@ -489,7 +594,7 @@ plugins/tama-cc-devflow/
   skills/run, resume, status      ユーザーが起動する入口
   skills/workboard                ホワイトボードの Schema と規約(Agent 専用)
   skills/clarify                  grill-me 形式ヒアリング(1 問ずつ、推奨回答付き。Agent 専用)
-  skills/small-flow, large-flow   オーケストレーション手順(Agent 専用、再入可能)
+  skills/small-flow, medium-flow, large-flow   オーケストレーション手順(Agent 専用、再入可能)
   agents/*.md                     Sub Agent 定義(model、tools、maxTurns、書いてよいファイル)
   hooks/hooks.json                PreToolUse の write_scope guard
   scripts/init-session.sh         セッションディレクトリの作成

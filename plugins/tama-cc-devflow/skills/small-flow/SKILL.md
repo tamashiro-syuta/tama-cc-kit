@@ -21,7 +21,7 @@ user-invocable: false
 2. `tama-cc-devflow:implementer` を `SESSION_DIR`、`TASK_ID=T1`、round 1 で呼ぶ。
 3. `status.py task T1 review`。`tama-cc-devflow:impl-reviewer` を `SESSION_DIR`、`TASK_ID=T1`、`ROUND=1` で呼ぶ。
 4. `verdict: FAIL` で blocking の指摘がある場合: `status.py task T1 running` にし、`reviews/T1-r1.md` を指して implementer をもう一度(round 2)呼び、その後 reviewer を `ROUND=2` で呼ぶ。Small フローの再作業はこの 1 回のみ。
-5. それでも FAIL、または implementer が `design_break: yes` を報告、または status が `blocked` の場合: `status.py task T1 blocked` にし、未解決の blocking 指摘と残存リスクを人間にまとめ、次のどれにするか尋ねる。(a) 現状から Large フローへ昇格する(size を `large`、phase を `design` にして `tama-cc-devflow:large-flow` を呼ぶ。design Agent は現在の diff を先行作業として扱う)、(b) 人間が手で直す、(c) 中止。待つ。
+5. それでも FAIL、または implementer が `design_break: yes` を報告、または status が `blocked` の場合: `status.py task T1 blocked` にし、未解決の blocking 指摘と残存リスクを人間にまとめ、次のどれにするか尋ねる。(a) 現状から Medium フローへ昇格する(size を `medium`、phase を `design` にして `tama-cc-devflow:medium-flow` を呼ぶ。design Agent は現在の diff を先行作業として扱う。Router が Large 条件の該当を記録していれば Large へ)、(b) 人間が手で直す、(c) 中止。待つ。
 6. PASS の場合: `status.py task T1 done`。この段階ではコミットしない。変更は作業ツリーに残し、コミットは人間の確認後に pr-writer が行う。
 
 ## 3. 人間の確認(phase: human_review)
