@@ -8,21 +8,35 @@ maxTurns: 30
 
 現在の devflow セッションの変更をタスク単位でコミットし、PR を作成する。呼ばれた時点で、全タスクの変更は未コミットのまま作業ツリーにある。ソースファイルは変更しない。
 
-`<SESSION_DIR>/context.md`、`<SESSION_DIR>/decisions.md`、`<SESSION_DIR>/design/design.md`(Large のみ)、`<SESSION_DIR>/reviews/integration.md`(Large)またはタスクのレビュー(Small)を読む。コミットを積んだ後に `git log <BASE_BRANCH>..HEAD --oneline` を確認し、PR 本文に反映する。
-
-リポジトリに PR テンプレート(`.github/pull_request_template.md` または `.github/PULL_REQUEST_TEMPLATE/`)があれば、その構成に従う。
+`<SESSION_DIR>/context.md`、`<SESSION_DIR>/decisions.md`、`<SESSION_DIR>/design/design.md`(Medium / Large)、`<SESSION_DIR>/reviews/integration.md`(Medium / Large)またはタスクのレビュー(Small)を読む。コミットを積んだ後に `git log <BASE_BRANCH>..HEAD --oneline` を確認し、PR 本文に反映する。
 
 ## PR 本文
 
-context.md で使われている言語で書く。セクション:
+context.md で使われている言語で書く。読み手は「このコードを読んでいない人」。上から順に理解が深まる構成にし、各セクションは短く。全体の分量は、セッションの設計書やレビューをそのまま写した量の 1/3 を目安にする。
 
-- Summary(何を、なぜ。context.md の元チケットやリンクを貼る)
-- Design decisions(decisions.md から。id を維持)
-- Changes by task
-- Review guide for humans(integration.md から: must-read files、risk hotspots)
-- Testing(実行したコマンドと結果)
-- Rollback
-- Open items / follow-ups
+リポジトリに PR テンプレート(`.github/pull_request_template.md` または `.github/PULL_REQUEST_TEMPLATE/`)があればその構成に従う。無ければ以下の構成。
+
+1. `## 背景` — 誰のどんな困りごとか 1〜2 文 + この PR で何ができるようになるか 1 文。Issue は `Closes #n`。Issue が別システムにあってもリンクを貼るだけで、分量は増やさない(context.md の Original request から)
+2. `## 変更内容` — 何を足した / 変えたか 1 文 + DB スキーマ変更の有無。エンドポイント / 画面 / ジョブ単位の箇条書きで、1 段ネストに動作の要点を 1 行
+3. `## 設計上の判断` — decisions.md のうち、コードを読んでも理由が分からないもの・レビュアーが「なぜ?」と聞きそうなものだけ。上限 5。番号なし、「決めたこと。理由」で 1〜2 行。decisions.md の id(D1 等)は書かない
+4. `## レビューで見てほしい所` — integration.md の must-read files と risk hotspots を統合。ファイル名 + 1 行で、崩れると何が起きるかを書く
+5. `## 動作確認` — CI 以外で確認したことがある場合だけ(curl で叩いた、フロント込みで動かした等)。CI と同じテストの件数は書かない。無ければ見出しごと省く
+6. `<details><summary>残課題・ロールバック</summary>` — integration.md の non-blocking と follow-ups、context.md の Follow-ups(Medium で分割した残りのスライス)、戻し方(マイグレーションの有無)
+
+### 図
+
+文より図で分かるものは図にし、図を入れた分だけ文を減らす。
+
+- 処理の順序・分岐が要点のとき → Mermaid `sequenceDiagram` / `flowchart`
+- テーブルの関係が変わるとき → `erDiagram`。状態遷移 → `stateDiagram-v2`
+- API・インデックス・設定の追加削除 → ` ```diff ` ブロックで `+` / `-` を並べる
+
+### 書かないもの
+
+- 前置き(「この PR では…」)
+- devflow の内部 id(タスク番号・決定番号)、タスク別のコミット表、レビューラウンド数
+- その場の会話を知らないと通じない言葉、リポジトリ外の文書の章番号
+- CI と同じテストの実行結果
 
 ## コミット
 
