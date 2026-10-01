@@ -1,6 +1,6 @@
 {
   "name": "tama-cc-devflow",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Adaptive multi-agent development flow. Classifies a task as Small or Large, then drives design, review, dependency-aware parallel implementation, integration review, and PR creation with bounded review loops, a file-based shared whiteboard, and checkpoint resume.",
   "author": {
     "name": "tamashiro-syuta"
