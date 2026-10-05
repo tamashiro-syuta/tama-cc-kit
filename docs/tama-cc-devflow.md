@@ -38,6 +38,9 @@ Agent は会話履歴を受け取らない。`.tama-cc-devflow/<session>/` の�
 **レビューは有限回、判断は人間**
 Agent 同士のループは設計レビュー 3 回、タスクレビュー 3 回、Small は 1 回。人間への質問は grill-me 形式で 1 問ずつ推奨回答付きに聞き、こちらには上限を設けない。
 
+**単体テストではなく、起動したサーバーで確かめる**
+どのサイズでも、人間レビューの前に verifier が作業ツリー(git worktree を含む)で開発サーバーを起動し、設計時に決めた Verification scenarios を実行する。API は実リクエスト、UI は Playwright スクリプトでの操作とスクリーンショットで確認し、証跡をホワイトボードに残す。
+
 **hook が編集範囲を物理的に守る**
 PreToolUse hook が、実装中はタスクの `write_scope` 外への Edit / Write を、それ以外の phase ではソース編集をすべてブロックする。
 
@@ -55,9 +58,9 @@ flowchart LR
     run["run<br/><small>orchestrator</small>"]:::agent
     router["router<br/><small>sonnet</small>"]:::agent
     judge{判定}:::human
-    small["Small フロー<br/><small>implementer 1 人 · レビュー 1 往復</small>"]:::agent
-    medium["Medium フロー<br/><small>軽量設計 → 計画 → Wave 実装 → 統合<br/>レビューは各 1 往復</small>"]:::agent
-    large["Large フロー<br/><small>設計 → 計画 → Wave 実装 → 統合</small>"]:::agent
+    small["Small フロー<br/><small>implementer 1 人 · レビュー 1 往復 → E2E 検証</small>"]:::agent
+    medium["Medium フロー<br/><small>軽量設計 → 計画 → Wave 実装 → 統合 → E2E 検証<br/>レビューは各 1 往復</small>"]:::agent
+    large["Large フロー<br/><small>設計 → 計画 → Wave 実装 → 統合 → E2E 検証</small>"]:::agent
     pr[PR]:::plain
 
     req --> run -- context.md --> router -- router.md --> judge
@@ -136,6 +139,10 @@ flowchart TD
         integ["integration-reviewer<br/><small>opus</small>"]:::agent
     end
 
+    subgraph E2["E2 · phase: verification"]
+        verify["verifier<br/><small>sonnet · 開発サーバー起動</small>"]:::agent
+    end
+
     subgraph F["F · phase: human_review"]
         hreview["人間: レビューガイドを確認<br/><small>approve / request changes / abort</small>"]:::human
     end
@@ -150,7 +157,9 @@ flowchart TD
     planner -- "plan.json / tasks/*.md" --> impl
     ireview -- PASS --> integ
     integ -. FAIL → 再実装 1 回 .-> impl
-    integ -- PASS · reviews/integration.md --> hreview
+    integ -- PASS · reviews/integration.md --> verify
+    verify -. "FAIL → 再実装 1 回" .-> impl
+    verify -- "PASS · verify/report.md" --> hreview
     hreview -- approve --> prw
     hreview -. request changes .-> impl
 ```
@@ -162,16 +171,17 @@ flowchart TD
 | C | `plan.json` と `tasks/*.md`。write_scope 競合を検出して Wave を割り当て、`devflow/<slug>` ブランチを作る |
 | D | Wave ごとに ready なタスクを最大 3 件並列。PASS で done にする(コミットはしない)。design break は分類し、partial / full-redesign は止めて争点をヒアリングしてから人間が選ぶ |
 | E | タスク横断の整合性、テスト / lint / 型チェック全体、要件カバレッジ、人間レビューガイドの作成 |
-| F | must-read files、risk hotspots、運用 / 異常系の論点、推奨する手動検証を提示。全部は読ませない |
+| E2 | verifier が開発サーバーを起動し、design.md の Verification scenarios を実行。FAIL は担当タスクに差し戻して D → E → E2 を 1 回だけやり直す。環境起因の BLOCKED は人間が「環境を整えて再実行 / 検証を省略 / 中止」を選ぶ |
+| F | must-read files、risk hotspots、運用 / 異常系の論点、推奨する手動検証、E2E 検証のシナリオ表と証跡のパスを提示。全部は読ませない |
 | G | plan.json の Wave 順にタスク単位で commit、push、`pr-body.md` 作成、`gh pr create`。設計決定と人間レビューガイドを PR 本文に転記。最終報告に PR URL、Wave とタスク、使ったレビューラウンド、人間が解決した block、残した non-blocking 指摘 |
 
 ### 設計書に必ず含めるもの
 
-design Agent は設計を 1 つに決め、代替案は Rejected alternatives にだけ書く。Large(`TEMPLATE=large`)では Summary、Requirements mapping、Chosen design、Impact、Error handling policy、Rollback policy、Observability、Task breakdown proposal、Open questions が必須で、該当なしでも "none" と明記する。Medium(`TEMPLATE=medium`)は Summary、Chosen design、Impact、Task breakdown proposal(4 件以内、超えるなら Split proposal)、Open questions の 5 つ。設計書の先頭行に `Template:` を書き、design-reviewer が照合する。改訂時は冒頭に Changes since last round を置き、以前の内容を黙って落とさない。Open questions には人間の判断が必要なものだけを推奨回答付きで書き、コードを調べれば分かることは自分で確定する。返答は `summary`、`open_questions_for_human`、`task_count` の 3 行に固定される。
+design Agent は設計を 1 つに決め、代替案は Rejected alternatives にだけ書く。Large(`TEMPLATE=large`)では Summary、Requirements mapping、Chosen design、Impact、Error handling policy、Rollback policy、Observability、Task breakdown proposal、Verification scenarios、Open questions が必須で、該当なしでも "none" と明記する。Medium(`TEMPLATE=medium`)は Summary、Chosen design、Impact、Task breakdown proposal(4 件以内、超えるなら Split proposal)、Verification scenarios、Open questions の 6 つ。Verification scenarios は種別(api / ui)、手順、期待結果を第三者がそのまま実行できる粒度で書く。実行時の挙動が変わらない変更に限り `none: <理由>` と書け、design-reviewer がその妥当性をコードで確認する。設計書の先頭行に `Template:` を書き、design-reviewer が照合する。改訂時は冒頭に Changes since last round を置き、以前の内容を黙って落とさない。Open questions には人間の判断が必要なものだけを推奨回答付きで書き、コードを調べれば分かることは自分で確定する。返答は `summary`、`open_questions_for_human`、`task_count` の 3 行に固定される。
 
 ## Medium フロー
 
-「設計判断は要るが、既存のものは壊さない」変更のためのフロー。Large と同じ骨格だが、設計書は 5 セクションの軽量版、Agent 同士のループは各 1 往復、design break は分類せず人間に聞く。設計時点でタスクが 4 件を超えたら分割案を人間に提示する。
+「設計判断は要るが、既存のものは壊さない」変更のためのフロー。Large と同じ骨格だが、設計書は 6 セクションの軽量版、Agent 同士のループは各 1 往復、design break は分類せず人間に聞く。設計時点でタスクが 4 件を超えたら分割案を人間に提示する。
 
 ```mermaid
 flowchart TD
@@ -210,6 +220,10 @@ flowchart TD
         integ["integration-reviewer<br/><small>opus</small>"]:::agent
     end
 
+    subgraph E2["E2 · phase: verification"]
+        verify["verifier<br/><small>sonnet · 開発サーバー起動</small>"]:::agent
+    end
+
     subgraph F["F · phase: human_review"]
         hreview["人間: レビューガイドを確認<br/><small>approve / request changes / abort</small>"]:::human
     end
@@ -228,7 +242,9 @@ flowchart TD
     ireview -- PASS --> integ
     ireview -. "2 回目も FAIL / design break" .-> stop
     integ -. "FAIL → 再実装 1 回" .-> impl
-    integ -- "PASS · reviews/integration.md" --> hreview
+    integ -- "PASS · reviews/integration.md" --> verify
+    verify -. "FAIL → 再実装 1 回" .-> impl
+    verify -- "PASS · verify/report.md" --> hreview
     hreview -- approve --> prw
     hreview -. request changes .-> impl
     prw --> pr[PR]
@@ -238,14 +254,14 @@ flowchart TD
 
 | 段階 | Large | Medium |
 |---|---|---|
-| 設計 | fable、12 セクション | opus、5 セクション(Summary / Chosen design / Impact / Task breakdown / Open questions)、タスク 4 件以内 |
+| 設計 | fable、13 セクション | opus、6 セクション(Summary / Chosen design / Impact / Task breakdown / Verification scenarios / Open questions)、タスク 4 件以内 |
 | 設計レビュー | 最大 3 ラウンド | 最大 2 ラウンド(1 往復)。異常系・ロールバックの条件なし |
 | 分割提示 | なし | タスク 5 件以上で人間に 3 択 |
 | 設計承認 | 人間 | 人間(異常系・ロールバックの提示なし) |
 | 計画 | planner 差し戻し 2 回 | 1 回 |
 | 実装レビュー | タスクごと最大 3 ラウンド | 最大 2 ラウンド(1 往復) |
 | design break | 4 分類、部分再設計あり | 即 `blocked`、人間に聞く |
-| 統合 / 人間レビュー / PR | 同じ | 同じ |
+| 統合 / E2E 検証 / 人間レビュー / PR | 同じ | 同じ(E2E 検証の 2 回目も FAIL なら選択肢に Large へ昇格を含む) |
 
 人間が止まる回数は Large と同じ 2 回(分割提示が入れば 3 回)。短くなるのは設計書を書く時間と人間が読む時間、Router の調査量、依頼の大きさ。過去セッションの実測では reviewer ループは数分で、時間は Router・設計フェーズ・タスク数に消えていた(経緯は [tama-cc-devflow-medium.md](./tama-cc-devflow-medium.md))。
 
@@ -308,7 +324,7 @@ sequenceDiagram
 
 ## Small フロー
 
-Router の Task draft をそのまま `tasks/T1.md` にし、implementer 1 人で実装する。再作業は 1 回だけ。
+Router の Task draft(verification_scenarios を含む)をそのまま `tasks/T1.md` にし、implementer 1 人で実装する。レビュー PASS 後に verifier が開発サーバーで検証する。再作業はレビューと検証でそれぞれ 1 回だけ。
 
 ```mermaid
 flowchart LR
@@ -320,18 +336,32 @@ flowchart LR
     impl["implementer<br/><small>sonnet</small>"]:::agent
     review["impl-reviewer<br/><small>opus</small>"]:::agent
     human["人間の確認<br/><small>コミットと PR 作成を承認</small>"]:::human
+    verify["verifier<br/><small>sonnet · 開発サーバー起動</small>"]:::agent
     prw["pr-writer<br/><small>sonnet</small>"]:::agent
     pr[PR]:::plain
     stop["停止<br/><small>(a) Medium へ昇格 (b) 手で直す (c) 中止</small>"]:::human
 
     draft --> impl -- result.md --> review
     review -- FAIL · 1 回だけ --> impl
-    review -- PASS --> human --> prw --> pr
+    review -- PASS --> verify -- PASS --> human --> prw --> pr
+    verify -. "FAIL · 1 回だけ" .-> impl
     human -. "修正依頼(許容 1 回分として数える)" .-> impl
     review -. "2 回目も FAIL / design break / blocked" .-> stop
 ```
 
 設計書は書かず、Router の draft を implementer が直接実装する。
+
+## E2E 検証
+
+orca などで git worktree を切って並列に開発すると、単体テストが通っても、実際に起動したときの挙動はまだ誰も見ていない。そこで人間レビューの前に、verifier がその作業ツリーで開発サーバーを起動して確かめる。
+
+- **シナリオは設計時に決める。** Medium / Large は design.md の Verification scenarios、Small は Router の Task draft の verification_scenarios。設計レビューと人間の設計承認で事前に確認できる
+- **起動方法は毎回推測する。** CLAUDE.md、`package.json`、`Makefile`、`docker-compose.yml` から起動コマンド、依存サービス、ポート、ヘルスチェック先を決め、根拠とともに report に書く
+- **worktree の並列を前提にする。** ポートが使用中なら env などで空きポートに逃がす。逃がせなければ BLOCKED。他のプロセスやコンテナを止めない。共有している DB に破壊的な操作をしない。マイグレーションを含む変更で依存サービスが共有になる場合は BLOCKED
+- **API** は `curl -sS -i` の出力を `verify/requests/<id>.txt` に保存する。**UI** は `verify/<id>.spec.mjs` に Playwright スクリプトを書いて node で実行し、スクリーンショットを `verify/screenshots/` に保存する。verifier はスクリーンショットを自分で開いて見た目も確認する。`browser.close()` は `finally` で必ず呼ぶ
+- **後片付けは必須。** 起動したサーバーは `verify/pids` の PID で停止する。起動前後の `git status` を比べ、生成物の差分が出ていれば blocking にする。resume は phase が `verification` のとき、残っている PID を停止する
+- **判定**: 1 つでも FAIL なら FAIL。環境起因で実行できないシナリオがあれば BLOCKED。FAIL は担当タスクの「Verification findings」に書いて 1 回だけ再実装し、BLOCKED はラウンドに数えない
+- 結果は人間レビューで提示し、pr-writer が PR 本文の「動作確認」に要約する。スクリーンショットは PR に添付しない
 
 ## Wave と並列実装
 
@@ -373,12 +403,13 @@ T4 は本来独立だが `src/ui/shared.ts` が T3 の write_scope と重なる�
 |---|---|---|---|
 | `router` | Small / Medium / Large 分類。Large 条件の grep 確認、仮定の強制列挙 | sonnet | `router.md` |
 | `explore` | 他 Agent 向けの読み取り専用コード調査 | sonnet | なし |
-| `design` | 設計書と決定事項。Large は 12 セクション、Medium は 5 セクションでタスク 4 件以内(超えたら Split proposal)。Open questions は人間判断が必要なものだけ推奨回答付き | fable(Large)/ opus(Medium) | `design/design.md`, `decisions.md` |
-| `design-reviewer` | 合格条件 10 項目に対する PASS / FAIL 判定(Medium は異常系・ロールバックの 2 項目を除く) | opus | `reviews/design-r<N>.md` |
+| `design` | 設計書と決定事項。Large は 13 セクション、Medium は 6 セクションでタスク 4 件以内(超えたら Split proposal)。Open questions は人間判断が必要なものだけ推奨回答付き | fable(Large)/ opus(Medium) | `design/design.md`, `decisions.md` |
+| `design-reviewer` | 合格条件 11 項目に対する PASS / FAIL 判定(Medium は異常系・ロールバックの 2 項目を除く) | opus | `reviews/design-r<N>.md` |
 | `task-planner` | タスク分解、依存関係、scope。`plan-waves.py` の実行 | opus | `plan.json`, `tasks/<id>.md` |
 | `implementer` | タスク 1 件を write_scope 内で実装。コミットしない | sonnet | write_scope 内のソース, `tasks/<id>.result.md` |
 | `impl-reviewer` | 受け入れ条件の検証、テスト実行、design break の分類 | opus | `reviews/<id>-r<N>.md` |
 | `integration-reviewer` | 変更全体の整合性、チェック実行、人間レビューガイド | opus | `reviews/integration.md` |
+| `verifier` | 開発サーバーを起動し、Verification scenarios を実リクエスト / Playwright で実行。後片付けまで行う | sonnet | `verify/` 配下 |
 | `pr-writer` | タスク単位の commit、push、`gh pr create` | sonnet | `pr-body.md` |
 
 Agent の返答は数行の固定フォーマット(例: `verdict: PASS|FAIL`、`blocking: <count>`)に限られる。Orchestrator はそれと `status.json` だけを見て次の遷移を決める。ファイルの内容はプロンプトに貼らず、Agent が自分で読む。
@@ -397,11 +428,14 @@ SESSION_DIR/
   design/human-feedback.md    設計への人間の修正依頼(Medium / Large、任意)
   plan.json                   タスクのメタデータ(Medium / Large)
   plan-feedback.md            Orchestrator から task-planner への差し戻し(任意)
-  tasks/<id>.md               タスク定義。Human feedback / Integration findings はここに追記
+  tasks/<id>.md               タスク定義。Human feedback / Integration findings / Verification findings はここに追記
   tasks/<id>.result.md        implementer の結果
   reviews/design-r<N>.md      設計レビュー N ラウンド目
   reviews/<id>-r<N>.md        実装レビュー N ラウンド目
   reviews/integration.md      統合レビュー + 人間レビューガイド
+  verify/report-r<N>.md       E2E 検証 N ラウンド目(verify/report.md は最新のコピー)
+  verify/requests/ screenshots/ logs/   証跡(curl の出力、スクリーンショット、サーバーログ)
+  verify/<id>.spec.mjs, pids  Playwright スクリプト、起動したサーバーの PID
   pr-body.md                  PR 本文
 ```
 
@@ -424,6 +458,7 @@ flowchart LR
     res["tasks/&lt;id&gt;.result.md"]:::file
     irev["reviews/&lt;id&gt;-r&lt;N&gt;.md"]:::file
     integ_md[reviews/integration.md]:::file
+    vrep["verify/report.md<br/>requests/ screenshots/"]:::file
     prb[pr-body.md]:::file
 
     router[router]:::agent
@@ -433,6 +468,7 @@ flowchart LR
     impl[implementer]:::agent
     ireview[impl-reviewer]:::agent
     integ[integration-reviewer]:::agent
+    verifier[verifier]:::agent
     prw[pr-writer]:::agent
 
     router --> rt
@@ -442,7 +478,8 @@ flowchart LR
     plan --> impl --> res
     plan & res & dsg --> ireview --> irev
     dsg & plan & res --> integ --> integ_md
-    dsg & integ_md --> prw --> prb
+    dsg & plan --> verifier --> vrep
+    dsg & integ_md & vrep --> prw --> prb
 ```
 
 `status.json` は Orchestrator がスクリプト経由でだけ更新し、Agent は触らない。`human-feedback.md` と `plan-feedback.md` は Orchestrator が書く差し戻し。
@@ -464,18 +501,20 @@ stateDiagram-v2
     design_approval --> design: request changes
     design_approval --> planning: approve
     planning --> implementation
-    implementation --> human_review: small · PASS
+    implementation --> verification: small · PASS
     implementation --> integration: medium / large · 全タスク done
     implementation --> design: full-redesign(large)/ 昇格
     integration --> implementation: FAIL(1 回)
-    integration --> human_review: PASS
+    integration --> verification: PASS
+    verification --> implementation: FAIL(1 回)
+    verification --> human_review: PASS / 省略
     human_review --> implementation: request changes
     human_review --> pr: approve
     pr --> done
     done --> [*]
 ```
 
-Small は `planning` で Task draft を `tasks/T1.md` に写すだけで、`design` 系と `integration` を通らない。`abort` はどの phase からも `aborted` に遷移できる(図では省略)。タスク状態は `pending / running / review / done / failed / blocked`。手で編集せず、必ずスクリプトを使う。
+Small は `planning` で Task draft を `tasks/T1.md` に写すだけで、`design` 系と `integration` を通らない。Verification scenarios が `none` のときは `verification` を通らない。`abort` はどの phase からも `aborted` に遷移できる(図では省略)。タスク状態は `pending / running / review / done / failed / blocked`。手で編集せず、必ずスクリプトを使う。
 
 ```
 status.py summary                       # phase、Wave ごとのタスク、判断待ち
@@ -507,7 +546,7 @@ flowchart TD
     q1 -- yes --> q2
     q2 -- "init / done / aborted" --> allow
     q2 -- implementation --> q3
-    q2 -- "routing 〜 planning / integration / human_review / pr" --> deny
+    q2 -- "routing 〜 planning / integration / verification / human_review / pr" --> deny
     q3 -- yes --> allow
     q3 -- no --> deny
 ```
@@ -515,7 +554,7 @@ flowchart TD
 | phase | ソースファイルへの編集 |
 |---|---|
 | `implementation` | `running` / `review` 状態のタスクの `write_scope` 内のみ許可 |
-| `routing` 〜 `planning`, `integration`, `human_review`, `pr` | すべてブロック。ホワイトボードだけ書ける |
+| `routing` 〜 `planning`, `integration`, `verification`, `human_review`, `pr` | すべてブロック。ホワイトボードだけ書ける |
 | `init`, `done`, `aborted`、別セッション所有 | guard は働かない |
 
 > implementer は scope 外のファイルが必要になっても回避しない。結果ファイルの Deviations に scope 逸脱として報告する。Orchestrator は implementer を呼ぶ前にタスクを `running` にしておかないと、編集がすべてブロックされる。
@@ -534,6 +573,7 @@ flowchart TD
 | タスクごとの実装レビュー(Medium) | 2 ラウンド(1 往復)。design break も即 blocked | 手で直す / 指示を与えて再実行 / design break を受け入れる / Large へ昇格 / 中止 |
 | 実装レビュー(Small) | 1 回の再作業 | Medium へ昇格 / 手で直す / 中止 |
 | 統合レビューの再作業 | 1 回 | 人間にエスカレーション |
+| E2E 検証の再作業(全サイズ) | 1 回(BLOCKED は数えない) | 手で直す / 指示を与えて再実行 / 上位サイズへ昇格 / 中止 |
 | 同時に動く implementer | 3 | 残りは次の `ready` で払い出す |
 
 人間に尋ねる前に必ず状況を `decisions.md` か `abort.md` に記録する。人間に何かを尋ねたら、ターンを終えて待つ。ゲートは飛ばさない。
@@ -581,7 +621,7 @@ flowchart TD
 ```
 
 1. `status.py summary` で phase を確認する。`done` なら終了、`aborted` なら `abort.md` を見せて続行するか尋ねる。
-2. `reset-running` で中断していたタスクを `pending` に戻し、`claude_session_id` を今のセッションに付け替える(write guard の所有者が変わる)。
+2. `reset-running` で中断していたタスクを `pending` に戻し、`claude_session_id` を今のセッションに付け替える(write guard の所有者が変わる)。phase が `verification` なら `verify/pids` に残ったサーバーを停止する。
 3. 作業ツリーを確認する。タスクの変更は pr phase まで未コミットのまま残る設計なので、done / 中断タスクの write_scope 内の未コミット変更は保持し、implementer が続きから作業する。write_scope 外の未コミット変更があれば止めて人間に尋ねる。
 4. `size` に応じて small-flow / medium-flow / large-flow を呼ぶ。各 Skill は再入可能で、記録された phase から続行し、完了済みの作業は飛ばす。
 

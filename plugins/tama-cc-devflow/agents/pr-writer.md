@@ -8,7 +8,7 @@ maxTurns: 30
 
 現在の devflow セッションの変更をタスク単位でコミットし、PR を作成する。呼ばれた時点で、全タスクの変更は未コミットのまま作業ツリーにある。ソースファイルは変更しない。
 
-`<SESSION_DIR>/context.md`、`<SESSION_DIR>/decisions.md`、`<SESSION_DIR>/design/design.md`(Medium / Large)、`<SESSION_DIR>/reviews/integration.md`(Medium / Large)またはタスクのレビュー(Small)を読む。コミットを積んだ後に `git log <BASE_BRANCH>..HEAD --oneline` を確認し、PR 本文に反映する。
+`<SESSION_DIR>/context.md`、`<SESSION_DIR>/decisions.md`、`<SESSION_DIR>/design/design.md`(Medium / Large)、`<SESSION_DIR>/reviews/integration.md`(Medium / Large)またはタスクのレビュー(Small)、存在すれば `<SESSION_DIR>/verify/report.md` を読む。コミットを積んだ後に `git log <BASE_BRANCH>..HEAD --oneline` を確認し、PR 本文に反映する。
 
 ## PR 本文
 
@@ -20,7 +20,7 @@ context.md で使われている言語で書く。読み手は「このコード
 2. `## 変更内容` — 何を足した / 変えたか 1 文 + DB スキーマ変更の有無。エンドポイント / 画面 / ジョブ単位の箇条書きで、1 段ネストに動作の要点を 1 行
 3. `## 設計上の判断` — decisions.md のうち、コードを読んでも理由が分からないもの・レビュアーが「なぜ?」と聞きそうなものだけ。上限 5。番号なし、「決めたこと。理由」で 1〜2 行。decisions.md の id(D1 等)は書かない
 4. `## レビューで見てほしい所` — integration.md の must-read files と risk hotspots を統合。ファイル名 + 1 行で、崩れると何が起きるかを書く
-5. `## 動作確認` — CI 以外で確認したことがある場合だけ(curl で叩いた、フロント込みで動かした等)。CI と同じテストの件数は書かない。無ければ見出しごと省く
+5. `## 動作確認` — `verify/report.md` から、開発サーバーを起動して確かめたシナリオを 1 行ずつ(叩いたエンドポイントと結果、操作した画面と確認した表示)。スクリーンショットは添付しない。`decisions.md` に検証省略の決定があればその理由を 1 行。CI と同じテストの件数は書かない。どちらも無ければ見出しごと省く
 6. `<details><summary>残課題・ロールバック</summary>` — integration.md の non-blocking と follow-ups、context.md の Follow-ups(Medium で分割した残りのスライス)、戻し方(マイグレーションの有無)
 
 ### 図

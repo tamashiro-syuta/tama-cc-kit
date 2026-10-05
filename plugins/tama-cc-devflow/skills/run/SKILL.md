@@ -12,7 +12,7 @@ allowed-tools:
   - Bash
   - AskUserQuestion
   - Skill
-  - Agent(tama-cc-devflow:router, tama-cc-devflow:explore, tama-cc-devflow:design, tama-cc-devflow:design-reviewer, tama-cc-devflow:task-planner, tama-cc-devflow:implementer, tama-cc-devflow:impl-reviewer, tama-cc-devflow:integration-reviewer, tama-cc-devflow:pr-writer)
+  - Agent(tama-cc-devflow:router, tama-cc-devflow:explore, tama-cc-devflow:design, tama-cc-devflow:design-reviewer, tama-cc-devflow:task-planner, tama-cc-devflow:implementer, tama-cc-devflow:impl-reviewer, tama-cc-devflow:integration-reviewer, tama-cc-devflow:verifier, tama-cc-devflow:pr-writer)
 ---
 
 # devflow run

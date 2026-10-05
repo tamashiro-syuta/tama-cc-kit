@@ -14,7 +14,7 @@ import os
 import sys
 
 GUARDED = {"routing", "clarify", "design", "design_review", "design_approval", "planning",
-           "implementation", "integration", "human_review", "pr"}
+           "implementation", "integration", "verification", "human_review", "pr"}
 
 
 def main():

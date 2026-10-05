@@ -24,7 +24,7 @@ SLUG="$(echo "$SLUG" | tr '[:upper:]' '[:lower:]' | sed -E 's/[^a-z0-9]+/-/g; s/
 SESSION_ID="$(date +%Y%m%d-%H%M%S)-$SLUG"
 DIR="$ROOT/$SESSION_ID"
 
-mkdir -p "$DIR"/{design,tasks,reviews}
+mkdir -p "$DIR"/{design,tasks,reviews,verify}
 NOW="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 
 cat > "$DIR/status.json" <<JSON
@@ -37,7 +37,7 @@ cat > "$DIR/status.json" <<JSON
   "phase": "init",
   "branch": null,
   "base_branch": "$(git -C "$PROJECT_DIR" rev-parse --abbrev-ref HEAD)",
-  "review_rounds": { "design": 0 },
+  "review_rounds": { "design": 0, "verification": 0 },
   "tasks": {},
   "human_decisions_required": [],
   "pr_url": null

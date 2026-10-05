@@ -12,7 +12,7 @@ allowed-tools:
   - Bash
   - AskUserQuestion
   - Skill
-  - Agent(tama-cc-devflow:router, tama-cc-devflow:explore, tama-cc-devflow:design, tama-cc-devflow:design-reviewer, tama-cc-devflow:task-planner, tama-cc-devflow:implementer, tama-cc-devflow:impl-reviewer, tama-cc-devflow:integration-reviewer, tama-cc-devflow:pr-writer)
+  - Agent(tama-cc-devflow:router, tama-cc-devflow:explore, tama-cc-devflow:design, tama-cc-devflow:design-reviewer, tama-cc-devflow:task-planner, tama-cc-devflow:implementer, tama-cc-devflow:impl-reviewer, tama-cc-devflow:integration-reviewer, tama-cc-devflow:verifier, tama-cc-devflow:pr-writer)
 ---
 
 # devflow resume
@@ -25,6 +25,6 @@ allowed-tools:
 
 1. `status.py summary`。phase が `done` ならその旨を伝えて終了。`aborted` なら `SESSION_DIR/abort.md` を見せ、それでも続行するか尋ねる。
 2. `CLAUDE_SESSION_ID=${CLAUDE_SESSION_ID} python3 "${CLAUDE_PLUGIN_ROOT}/scripts/status.py" reset-running` を実行し、中断したタスクをやり直し可能にし、この Claude セッションが実行を所有するようにする。
-3. 作業ツリーを確認: `git status --porcelain` と `git branch --show-current`。`status.json.branch` が設定済みで checkout されていなければ `git checkout <branch>`。タスクの変更は pr phase まで未コミットのまま作業ツリーに残る設計なので、`done` / `running` / `review` だったタスクの write_scope 内にある未コミット変更は保持する。implementer は現在のファイルから続きを行う。write_scope 外の未コミット変更があれば停止して人間に尋ねる。
+3. 作業ツリーを確認: `git status --porcelain` と `git branch --show-current`。`status.json.branch` が設定済みで checkout されていなければ `git checkout <branch>`。タスクの変更は pr phase まで未コミットのまま作業ツリーに残る設計なので、`done` / `running` / `review` だったタスクの write_scope 内にある未コミット変更は保持する。implementer は現在のファイルから続きを行う。write_scope 外の未コミット変更があれば停止して人間に尋ねる。phase が `verification` で `SESSION_DIR/verify/pids` があれば、記録された PID とその子プロセスを停止してから `pids` を削除する(verifier が起動したサーバーの残骸)。
 4. どこで止まったか、次に何が起きるかを 5 行で人間に伝える。ステップ 3 で質問が生じていなければ待たずに進む。
 5. `size` に応じて Skill `tama-cc-devflow:small-flow`、`tama-cc-devflow:medium-flow`、`tama-cc-devflow:large-flow` のいずれかを呼ぶ。これらは再入可能で、記録された phase から続行する。

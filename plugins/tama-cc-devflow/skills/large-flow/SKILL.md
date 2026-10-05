@@ -1,6 +1,6 @@
 ---
 name: large-flow
-description: devflow の Large フロー。設計と有限回のレビューループ、人間の設計承認、依存関係を考慮したタスク分解、Wave 単位の並列実装とタスクごとの有限回レビューループ、統合レビュー、人間レビュー、PR。devflow の run / resume Skill から呼ばれる。直接使用するものではない。
+description: devflow の Large フロー。設計と有限回のレビューループ、人間の設計承認、依存関係を考慮したタスク分解、Wave 単位の並列実装とタスクごとの有限回レビューループ、統合レビュー、開発サーバーでの E2E 検証、人間レビュー、PR。devflow の run / resume Skill から呼ばれる。直接使用するものではない。
 user-invocable: false
 ---
 
@@ -64,11 +64,21 @@ approve / request changes / abort を尋ね、待つ。「request changes」の�
 
 1. `status.py set phase '"integration"'`。`tama-cc-devflow:integration-reviewer` を `BASE_BRANCH` 付きで呼ぶ。
 2. `FAIL` の場合: blocking issue ごとにどのタスクが担当かを決め、そのタスクファイルの「Integration findings」に書き、タスクを `pending` にして `review_rounds` を 0 に戻し、phase を `implementation` にして該当タスクだけ D を再実行する。統合の再作業サイクルは最大 1 回。その後は人間にエスカレーションする。
-3. `PASS` なら続行。
+3. `PASS` なら E2 へ。
+
+## E2. E2E 検証(phase: verification)
+
+`design/design.md` の Verification scenarios が `none: <理由>` ならこの節を飛ばし、F で理由を人間に示す。
+
+1. `status.py set phase '"verification"'`。`N = review_rounds.verification + 1` とし、`status.py set review_rounds.verification N`。`tama-cc-devflow:verifier` を `ROUND=N` で呼ぶ。
+2. `PASS` -> F へ。
+3. `FAIL` かつ `N == 1`: `verify/report.md` の Failures ごとに担当タスクを決め(report の推定を確認し、違えば Orchestrator が決める)、そのタスクファイルの「Verification findings」に書き、タスクを `pending`、`review_rounds` 0 に戻し、phase を `implementation` にして該当タスクだけ D を再実行し、E を再実行してからこの節の 1 へ戻る。
+4. `FAIL` かつ `N == 2`: ループを止める。未解決の Failures、原因と思われる箇所、推奨アクションを人間に示し、人間が直す / implementer に具体的な指示を与える(D.6 と同じ手順)/ 中止、を尋ねる。待つ。
+5. `BLOCKED`: `Blocked reason` を人間に示し、(a) 人間が環境を整えて再実行する(ステップ 1 の加算を省き、同じ `ROUND` で verifier を呼び直す)、(b) 検証を省略する(理由を `decisions.md` に記録して F へ)、(c) 中止、を尋ねる。待つ。
 
 ## F. 人間レビュー(phase: human_review)
 
-`status.py set phase '"human_review"'`。`reviews/integration.md` の人間レビューガイドを提示する: must-read files、risk hotspots、運用と異常系の論点、推奨する手動検証、non-blocking 指摘。approve / request changes / abort を尋ね、待つ。「request changes」の場合、各依頼を担当タスクファイルの「Human feedback」に書き、そのタスクを `pending`、`review_rounds` 0 に戻し、phase を `implementation` にして D を再実行し、E を再実行してからここに戻る。
+`status.py set phase '"human_review"'`。`reviews/integration.md` の人間レビューガイドを提示する: must-read files、risk hotspots、運用と異常系の論点、推奨する手動検証、non-blocking 指摘。加えて E2E 検証の結果(`verify/report.md` のシナリオ表、スクリーンショットとリクエストログのパス。省略した場合はその理由)を示す。approve / request changes / abort を尋ね、待つ。「request changes」の場合、各依頼を担当タスクファイルの「Human feedback」に書き、そのタスクを `pending`、`review_rounds` 0 に戻し、phase を `implementation` にして D を再実行し、`review_rounds.verification` を 0 に戻して E と E2 を再実行してからここに戻る。
 
 ## G. PR(phase: pr)
 

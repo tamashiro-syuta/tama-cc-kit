@@ -14,7 +14,7 @@ SESSION_DIR/
   context.md           依頼内容、要件、制約、関連ファイル、人間への確認結果
   decisions.md         重要な決定だけ: "## Dn: title" / "- Decision:" / "- Reason:"
   router.md            Router の判定、仮定一覧、Task draft(Small)
-  design/design.md     設計書(Medium は 5 セクションの軽量版、Large は 12 セクション。先頭行 "Template: medium|large")
+  design/design.md     設計書(Medium は 6 セクションの軽量版、Large は 13 セクション。先頭行 "Template: medium|large")
   design/human-feedback.md   設計に対する人間の修正依頼(Medium / Large、任意)
   plan.json            タスクのメタデータ(Medium / Large)
   plan-feedback.md     Orchestrator から task-planner へのフィードバック(Medium / Large、任意)
@@ -23,6 +23,9 @@ SESSION_DIR/
   reviews/design-r<N>.md      設計レビュー N ラウンド目
   reviews/<id>-r<N>.md        タスク id の実装レビュー N ラウンド目
   reviews/integration.md      統合レビュー + 人間レビューガイド
+  verify/report-r<N>.md       E2E 検証 N ラウンド目(verify/report.md は最新のコピー)
+  verify/requests/, screenshots/, logs/   検証の証跡(curl の出力、スクリーンショット、サーバーログ)
+  verify/<id>.spec.mjs, pids  verifier が書く Playwright スクリプトと、起動したサーバーの PID
   pr-body.md           PR 本文
 ```
 
@@ -34,9 +37,9 @@ SESSION_DIR/
   "claude_session_id": "<この実行を所有する Claude Code の session id>",
   "created_at": "...", "updated_at": "...",
   "size": null | "small" | "medium" | "large",
-  "phase": "init|routing|clarify|design|design_review|design_approval|planning|implementation|integration|human_review|pr|done|aborted",
+  "phase": "init|routing|clarify|design|design_review|design_approval|planning|implementation|integration|verification|human_review|pr|done|aborted",
   "branch": "devflow/add-export", "base_branch": "main",
-  "review_rounds": { "design": 0 },
+  "review_rounds": { "design": 0, "verification": 0 },
   "tasks": {
     "T1": { "title": "...", "status": "pending|running|review|done|failed|blocked",
             "depends_on": [], "write_scope": ["src/x.ts"], "wave": 1,
@@ -68,6 +71,7 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/plan-waves.py"                 # plan.jso
 - Large: 設計レビュー 3 ラウンド、タスクごとの実装レビュー 3 ラウンド、planner 差し戻し 2 回。
 - Medium: 設計レビュー 2 ラウンド、タスクごとの実装レビュー 2 ラウンド、planner 差し戻し 1 回。タスク分解は 4 件以内(超えたら人間に分割を提示)。
 - Small: 実装レビュー 2 ラウンド(再作業 1 回)。
+- 全サイズ: E2E 検証 2 ラウンド(FAIL 後の再作業 1 回)。BLOCKED(環境起因)はラウンドに数えない。
 - 同時実行する implementer: 3。
 - 上限に達したときの選択肢に「上位サイズへ昇格」を含める(Small -> Medium、Medium -> Large)。
 - 人間へのヒアリング(clarify Skill)には回数上限を設けない。上限があるのは Agent 同士のループだけ。

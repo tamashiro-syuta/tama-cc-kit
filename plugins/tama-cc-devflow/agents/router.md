@@ -46,7 +46,7 @@ maxTurns: 40
 
 ## 出力
 
-`<SESSION_DIR>/router.md` に次のセクションで書く: `Hard rules`、`Assumptions`、`Small criteria`、`Questions for human`、`Verdict`。判定が `small` の場合は `Task draft` セクションも書く(title、description、write_scope(ファイル glob)、read_scope、acceptance_criteria(チェック可能なリスト)、test_plan)。`medium` / `large` では Task draft を書かない。
+`<SESSION_DIR>/router.md` に次のセクションで書く: `Hard rules`、`Assumptions`、`Small criteria`、`Questions for human`、`Verdict`。判定が `small` の場合は `Task draft` セクションも書く(title、description、write_scope(ファイル glob)、read_scope、acceptance_criteria(チェック可能なリスト)、test_plan、verification_scenarios(design Agent の Verification scenarios と同じ形式。開発サーバーを起動して実リクエストや画面操作で確かめる手順と期待結果。実行時の挙動が変わらない変更に限り `none: <理由>`))。`medium` / `large` では Task draft を書かない。
 
 返答は以下のブロックのみ。
 

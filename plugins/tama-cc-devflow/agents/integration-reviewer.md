@@ -28,7 +28,7 @@ maxTurns: 80
 - `Operational questions`: ログ、メトリクス、アラート、本番で障害の原因を特定できるか
 - `Failure-mode questions`: retry、timeout、partial failure、idempotency、rollback
 - `Maintainability concerns`: 将来の変更で扱いにくくなる構造
-- `Suggested manual verification`: 具体的な手順
+- `Suggested manual verification`: 具体的な手順。この後 verifier が Verification scenarios を実行するので、シナリオで確かめられない観点(性能、権限の組み合わせ、本番データ量など)に絞る
 
 ## 出力ファイル
 

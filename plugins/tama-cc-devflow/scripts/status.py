@@ -71,7 +71,7 @@ def walk(obj, path, create=False):
 def cmd_summary(status):
     print(f"session: {status['session_id']}")
     print(f"size: {status['size']}  phase: {status['phase']}  branch: {status['branch']}")
-    print(f"design review rounds: {status['review_rounds']['design']}")
+    print(f"design review rounds: {status['review_rounds']['design']}  verification rounds: {status['review_rounds']['verification']}")
     tasks = status["tasks"]
     if tasks:
         print("tasks:")
