@@ -16,6 +16,7 @@
 - [Large フロー](#large-フロー)
 - [Medium フロー](#medium-フロー)
 - [人間へのヒアリング](#人間へのヒアリングgrill-me-形式)
+- [人間向けメッセージ](#人間向けメッセージ)
 - [Small フロー](#small-フロー)
 - [Wave と並列実装](#wave-と並列実装)
 - [Agent とモデル](#agent-とモデル)
@@ -36,7 +37,7 @@ Large は「既存のものを壊すか、戻せるか」で grep により決�
 Agent は会話履歴を受け取らない。`.tama-cc-devflow/<session>/` のホワイトボードから必要なファイルだけ読み、決められたファイルだけ書く。
 
 **レビューは有限回、判断は人間**
-Agent 同士のループは設計レビュー 3 回、タスクレビュー 3 回、Small は 1 回。人間への質問は grill-me 形式で 1 問ずつ推奨回答付きに聞き、こちらには上限を設けない。
+Agent 同士のループは設計レビュー 3 回、タスクレビュー 3 回、Small は 1 回。人間への質問は grill-me 形式で推奨回答付きに聞き(重い質問は 1 問ずつ、軽い質問はまとめて)、こちらには上限を設けない。
 
 **単体テストではなく、起動したサーバーで確かめる**
 どのサイズでも、人間レビューの前に verifier が作業ツリー(git worktree を含む)で開発サーバーを起動し、設計時に決めた Verification scenarios を実行する。API は実リクエスト、UI は Playwright スクリプトでの操作とスクリーンショットで確認し、証跡をホワイトボードに残す。
@@ -67,7 +68,7 @@ flowchart LR
     judge -- small --> small --> pr
     judge -- medium --> medium --> pr
     judge -- large --> large --> pr
-    judge -. "質問は grill-me 形式で 1 問ずつ<br/>(Router との往復は 2 回まで)" .-> router
+    judge -. "質問は grill-me 形式<br/>(Router との往復は 2 回まで)" .-> router
 ```
 
 Router が書く `router.md` には Large 条件の確認、仮定一覧、Small 条件の採点、人間への質問、判定が入る。Small のときは Task draft も書く。人間は判定を上位のサイズに上書きできる(下位への上書きは不可)。
@@ -112,7 +113,7 @@ flowchart TD
     subgraph A["A · phase: design / design_review"]
         design["design<br/><small>fable</small>"]:::agent
         dreview["design-reviewer<br/><small>opus</small>"]:::agent
-        interview["人間: ヒアリング<br/><small>grill-me 形式 · 1 問ずつ</small>"]:::human
+        interview["人間: ヒアリング<br/><small>grill-me 形式 · 重い質問は 1 問ずつ</small>"]:::human
         design -- design.md --> dreview
         dreview -- FAIL · 最大 3 ラウンド --> design
         design -- Open questions --> interview
@@ -166,7 +167,7 @@ flowchart TD
 
 | 段階 | 内容 |
 |---|---|
-| A | 設計中の疑問とレビュアーの質問は、まず design が答え、残りを人間に 1 問ずつ聞いてから改訂。レビューは最大 3 ラウンド |
+| A | 設計中の疑問とレビュアーの質問は、まず design が答え、残りを人間に聞いてから改訂。レビューは最大 3 ラウンド |
 | B | 要約、インターフェース変更、異常系とロールバック、タスク分解案を提示。Open questions は A で解消済みが前提 |
 | C | `plan.json` と `tasks/*.md`。write_scope 競合を検出して Wave を割り当て、`devflow/<slug>` ブランチを作る |
 | D | Wave ごとに ready なタスクを最大 3 件並列。PASS で done にする(コミットはしない)。design break は分類し、partial / full-redesign は止めて争点をヒアリングしてから人間が選ぶ |
@@ -190,7 +191,7 @@ flowchart TD
 
     subgraph A["A · phase: design / design_review"]
         design["design<br/><small>opus · 軽量テンプレート</small>"]:::agent
-        interview["人間: ヒアリング<br/><small>grill-me 形式 · 1 問ずつ</small>"]:::human
+        interview["人間: ヒアリング<br/><small>grill-me 形式 · 重い質問は 1 問ずつ</small>"]:::human
         split["人間: 分割の判断<br/><small>タスク 5 件以上のとき<br/>分割する / Large へ / このまま進む</small>"]:::human
         dreview["design-reviewer<br/><small>opus · 条件 5, 6 を除く</small>"]:::agent
         design -- Open questions --> interview
@@ -281,7 +282,7 @@ Small は停止時に Medium へ、Medium は停止時に Large へ昇格でき�
 
 ## 人間へのヒアリング(grill-me 形式)
 
-人間の判断が要る疑問は、一覧で投げて「どうしますか」と聞かない。Agent 専用 Skill `clarify` が grill-me の手順で、決定ツリーの枝を 1 本ずつ潰す。
+人間の判断が要る疑問は、一覧で投げて「どうしますか」と聞かない。Agent 専用 Skill `clarify` が grill-me の手順で、決定ツリーの枝を潰す。考える必要がある重い質問だけを 1 問ずつ聞き、推奨で流せる軽い質問はまとめて聞く。
 
 ```mermaid
 sequenceDiagram
@@ -295,20 +296,25 @@ sequenceDiagram
     C->>X: コードで答えが出る質問を調査
     X-->>C: 確定
     C->>W: 「調査で確定」と記録
-    loop 残った質問を依存関係順に 1 問ずつ
+    loop 重い質問を依存関係順に 1 問ずつ
         C->>H: 質問 + 推奨回答 + 理由
         H-->>C: 回答(または「任せる」)
         C->>W: 事実は Clarifications、方針は Dn に理由付きで
         Note over C: 新しい疑問が生まれたらリストに追加
     end
+    C->>H: 軽い質問をまとめて(4 問以下は一括、5 問以上は推奨一覧で一括承認)
+    H-->>C: 回答
+    C->>W: 記録
     C-->>O: 確定事項を 1 回だけ提示
     O->>O: 該当 Agent に改訂を依頼
 ```
 
 1. コードベースで答えが出る質問は人間に聞かない。`explore` で調べて確定し、「調査で確定」と明記して記録する。
-2. 残った質問を依存関係順に並べ、**1 問ずつ**聞く。各質問に推奨回答と理由を付ける。選択肢が離散的なら AskUserQuestion で推奨案を先頭に置く。
-3. 回答は即座に記録する。事実や仕様は `context.md` の Clarifications、方針を決める回答は `decisions.md` の `Dn` に理由付きで。回答が新しい疑問を生めばリストに足す。
-4. 「任せる」なら推奨回答を採用し、委任した旨を残す。全枝が解消したら確定事項を 1 回だけ示して終わる。
+2. 残った質問を重と軽に振り分ける。重は「他の質問の前提になる / 外れるとアプローチの作り直し / 判断に設計書やコードを読む必要がある」のどれか、軽は「独立・離散的・推奨に自信あり・影響が局所的・本文だけで判断できる」のすべてを満たすもの。迷ったら重。
+3. 重い質問を依存関係順に **1 問ずつ** 聞く。各質問に推奨回答と理由を付ける。選択肢が離散的なら AskUserQuestion で推奨案を先頭に置く。
+4. 残った軽い質問をまとめて聞く。4 問以下なら AskUserQuestion 1 回、5 問以上なら推奨回答の一覧を示して「全部推奨 / 変える番号を指定」の 1 問にする。並列で複数のフローを動かしていても、人間が考える質問の数を絞れる。
+5. 回答は即座に記録する。事実や仕様は `context.md` の Clarifications、方針を決める回答は `decisions.md` の `Dn` に理由付きで。回答が新しい疑問を生めばリストに足す。
+6. 「任せる」なら推奨回答を採用し、委任した旨を残す。全枝が解消したら確定事項を 1 回だけ示して終わる。
 
 | 呼び出し箇所 | 入力 | 解消後 |
 |---|---|---|
@@ -321,6 +327,24 @@ sequenceDiagram
 | `medium-flow` D 実装 block | blocking が解消しない理由、design break の内容 | 選択肢(手で直す / 指示を与えて再実行 / design break を受け入れる / Large へ昇格 / 中止)を提示 |
 
 ヒアリング中に phase は変えない(Router 段階だけ `clarify`)。clarify 自身は設計や計画を書き換えず、記録だけして呼び出し元が該当 Agent に改訂を頼む。
+
+## 人間向けメッセージ
+
+orca などで複数の devflow を並列に動かすと、届いた質問がどのフローのどの段階の話か分からなくなる。そこで、人間に示す・尋ねるメッセージは workboard Skill で決めた 1 つの形式に揃える。
+
+```
+[<label>] <size> / <phase> / <task id: タスク名>
+状況: 何が起きたか 1 行(どの成果物から出た話か)
+論点: 何を決めてほしいか 1 行
+選択肢: (推奨) A — 影響 / B — 影響
+詳細: <SESSION_DIR からの相対パス>
+```
+
+- `<label>` は session id から日時を除いた slug。AskUserQuestion の `header` にも入れる。
+- `T2` や `D3` のような内部 id だけで済ませず、ファイル名・関数名・挙動などの具体物で書く。
+- 本文は 5 行程度に収め、根拠や全文はパスで渡す。
+
+Orca のターミナルで動いている場合(`ORCA_TERMINAL_HANDLE` がある場合)は、`status.py` が status.json を保存するたびに `orca terminal rename` を呼び、タブのタイトルを `<label> | <size> | <phase>` に更新する。
 
 ## Small フロー
 
@@ -565,7 +589,7 @@ flowchart TD
 |---|---|---|
 | Router とヒアリングの往復 | 2 回 | Medium 以上として扱い、未決の質問を設計フェーズのヒアリングに持ち越す |
 | 人間へのヒアリング(clarify) | なし | 上限があるのは Agent 同士のループだけ。同じ論点の言い換え再質問はしない |
-| 設計レビュー(Large) | 3 ラウンド(ヒアリング後の再レビューは数えない) | 争点を 1 問ずつヒアリングして改訂。解消しない時だけ「受け入れ / 中止」を選ぶ |
+| 設計レビュー(Large) | 3 ラウンド(ヒアリング後の再レビューは数えない) | 争点をヒアリングして改訂。解消しない時だけ「受け入れ / 中止」を選ぶ |
 | 設計レビュー(Medium) | 2 ラウンド(1 往復) | 未解決の blocking を承認ゲートに添えて人間が判断 |
 | タスク分解(Medium) | 4 件 | 分割案を提示し、人間が「分割 / Large へ昇格 / このまま」を選ぶ |
 | task-planner の差し戻し | Large 2 ラウンド / Medium 1 ラウンド | plan を人間に提示して判断を仰ぐ |
@@ -633,7 +657,7 @@ flowchart TD
 plugins/tama-cc-devflow/
   skills/run, resume, status      ユーザーが起動する入口
   skills/workboard                ホワイトボードの Schema と規約(Agent 専用)
-  skills/clarify                  grill-me 形式ヒアリング(1 問ずつ、推奨回答付き。Agent 専用)
+  skills/clarify                  grill-me 形式ヒアリング(重い質問は 1 問ずつ、軽い質問はまとめて。推奨回答付き。Agent 専用)
   skills/small-flow, medium-flow, large-flow   オーケストレーション手順(Agent 専用、再入可能)
   agents/*.md                     Sub Agent 定義(model、tools、maxTurns、書いてよいファイル)
   hooks/hooks.json                PreToolUse の write_scope guard

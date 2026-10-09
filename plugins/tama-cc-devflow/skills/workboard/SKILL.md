@@ -81,6 +81,25 @@ python3 "${CLAUDE_PLUGIN_ROOT}/scripts/plan-waves.py"                 # plan.jso
 
 PreToolUse hook が、この Claude セッションが所有するセッションが guard 対象の phase にある間、ホワイトボード外への Edit/Write をブロックする。`implementation` 中は `running` / `review` 状態のタスクの `write_scope` 内のファイルだけ編集できる。phase を正直に設定し、implementer を呼ぶ前にタスクを `running` にすること。さもないと編集がブロックされる。
 
+## 人間向けメッセージ
+
+人間は複数の devflow を並列で動かしており、メッセージを読む時点でこのセッションの文脈を覚えていない前提で書く。人間に何かを示す・尋ねるメッセージ(判定の報告、質問、承認依頼、停止時のエスカレーション、最終報告)はすべてこの形式に従う。
+
+```
+[<label>] <size> / <phase> / <task id: タスク名>(タスクに紐づく場合のみ)
+状況: 何が起きたか 1 行
+論点: 何を決めてほしいか 1 行
+選択肢: (推奨) A — 影響 / B — 影響 / C — 影響
+詳細: <SESSION_DIR からの相対パス>
+```
+
+- `<label>` は session id から日時プレフィックス(`YYYYMMDD-HHMMSS-`)を除いた slug。AskUserQuestion の `header` にも同じ label を入れる(12 文字を超える場合は先頭 12 文字)。
+- 単独で読める文にする。`T2`、`D3`、`r2 の指摘` のような内部 id だけで済ませず、ファイル名・関数名・挙動など具体物で書く。
+- 状況には「なぜ今聞くのか」を含める。どの成果物から出た話か(design-reviewer の指摘、verifier の FAIL など)を書く。
+- 本文は 5 行程度に収める。根拠や全文は「詳細」のパスに逃がし、本文に貼らない。
+- 質問でない報告(判定の報告、最終報告)は「論点」「選択肢」を省いてよい。1 行目のヘッダは省かない。
+- 各 Skill が「提示する」と列挙している項目は、この形式の「状況」と「詳細」の間に箇条書きで入れる。
+
 ## Agent の呼び出し
 
 Agent のプロンプトには必ず絶対パスの `SESSION_DIR`、`PLUGIN_ROOT`(`${CLAUDE_PLUGIN_ROOT}`)、セッション id を渡す。加えて、その Agent に必要な id だけを渡す(`TASK_ID`、`ROUND`、`BRANCH`、`BASE_BRANCH`、design / design-reviewer には `TEMPLATE`)。Medium フローでは design を `model: opus` で呼ぶ(fable は Large のみ)。ファイルの内容をプロンプトに貼らない。Agent が自分で読む。独立した implementer は 1 つのメッセージでまとめて呼び、並列実行させる。
