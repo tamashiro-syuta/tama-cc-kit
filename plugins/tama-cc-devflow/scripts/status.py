@@ -55,6 +55,18 @@ def save(d, status):
         json.dump(status, f, indent=2, ensure_ascii=False)
         f.write("\n")
     os.replace(tmp, os.path.join(d, "status.json"))
+    update_terminal_title(status)
+
+
+def update_terminal_title(status):
+    """Show the session label, size and phase on the Orca terminal tab so parallel runs are distinguishable."""
+    handle = os.environ.get("ORCA_TERMINAL_HANDLE")
+    if not handle:
+        return
+    label = status["session_id"][len("YYYYMMDD-HHMMSS-"):]
+    title = f"{label} | {status['size'] or '-'} | {status['phase']}"
+    subprocess.run(["orca", "terminal", "rename", "--terminal", handle, "--title", title],
+                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
 
 
 def walk(obj, path, create=False):

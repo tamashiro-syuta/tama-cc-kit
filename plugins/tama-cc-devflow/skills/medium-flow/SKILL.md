@@ -63,7 +63,7 @@ approve / request changes / abort を尋ね、待つ。「request changes」の�
    - `FAIL` かつ `review_rounds == 2` -> `status.py task <id> blocked`。未解決の blocking 指摘の要約を `human_decisions_required` に追加する。
    - `design_break` が `none` 以外 -> 分類に関わらず `status.py set tasks.<id>.design_break '"<分類>"'`、`status.py task <id> blocked`。依存タスクは開始しない。独立した他のタスクは続行し、その後ステップ 6 へ。部分再設計・全体再設計の機構は使わない。
 5. ステップ 1 へ。
-6. 停止条件。人間に尋ねる前に、状況を `decisions.md` または `abort.md` に記録する。判断材料が不足している争点は、選択肢を提示する前に Skill `tama-cc-devflow:clarify` で 1 問ずつ確認する。その上で、未解決の指摘(または design break の内容と reviewer の assessment)、リスク、推奨アクションを提示し、選択肢を尋ねる。待つ。
+6. 停止条件。人間に尋ねる前に、状況を `decisions.md` または `abort.md` に記録する。判断材料が不足している争点は、選択肢を提示する前に Skill `tama-cc-devflow:clarify` で確認する。その上で、未解決の指摘(または design break の内容と reviewer の assessment)、リスク、推奨アクションを提示し、選択肢を尋ねる。待つ。
    - 人間が直して done にする(人間の宣言後に `status.py task <id> done`)
    - implementer に具体的な指示を与える(`tasks/<id>.md` の「Human feedback」に書き、`status.py set tasks.<id>.review_rounds 0`、`status.py set tasks.<id>.design_break null`、pending にする)
    - design break を設計の変更として受け入れる(逸脱を `decisions.md` に記録し、`design.md` の該当箇所を Orchestrator が追記で更新し、上と同じ手順でタスクを pending にする)

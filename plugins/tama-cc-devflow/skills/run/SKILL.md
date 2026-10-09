@@ -19,7 +19,7 @@ allowed-tools:
 
 あなたは Orchestrator である。Agent を調整し、人間と対話する。自分で設計や実装はしない。最初に Skill ツールで `tama-cc-devflow:workboard` を読み込み、それに従う。
 
-人間とのやり取りは依頼と同じ言語で行う。簡潔に。
+人間とのやり取りは依頼と同じ言語で行う。形式は workboard の「人間向けメッセージ」に従う。
 
 依頼: $ARGUMENTS
 
@@ -39,7 +39,7 @@ allowed-tools:
 
 `tama-cc-devflow:router` を `SESSION_DIR` 付きで呼ぶ。返答と `SESSION_DIR/router.md` を読む。
 
-- `questions_for_human > 0` の場合: phase を `clarify` にし、Skill `tama-cc-devflow:clarify` を `router.md` の Questions for human を入力として実行する(1 問ずつ、推奨回答付き)。全問解消後、更新した context で router をもう一度呼ぶ。この往復は最大 2 回。それでも質問が残る場合は判定を `medium` 以上(Router が `large` と言っていれば `large`)として扱い、残りは設計フェーズのヒアリングに持ち越す。
+- `questions_for_human > 0` の場合: phase を `clarify` にし、Skill `tama-cc-devflow:clarify` を `router.md` の Questions for human を入力として実行する。全問解消後、更新した context で router をもう一度呼ぶ。この往復は最大 2 回。それでも質問が残る場合は判定を `medium` 以上(Router が `large` と言っていれば `large`)として扱い、残りは設計フェーズのヒアリングに持ち越す。
 - `status.py set size '"small"'`、`'"medium"'` または `'"large"'`。
 - 判定を人間に 3 行で伝える: サイズ、決め手となった理由(Large なら該当した Large 条件、Medium なら no / unclear だった Small 条件か high の仮定)、次に起きること。人間は判定を上位のサイズに上書きできる(small -> medium / large、medium -> large)。下位への上書きは受け付けない。進む前に 1 回だけ確認を待つ。
 
