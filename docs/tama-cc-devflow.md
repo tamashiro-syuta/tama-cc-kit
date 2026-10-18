@@ -385,7 +385,7 @@ orca などで git worktree を切って並列に開発すると、単体テス�
 - **API** は `curl -sS -i` の出力を `verify/requests/<id>.txt` に保存する。**UI** は `verify/<id>.spec.mjs` に Playwright スクリプトを書いて node で実行し、スクリーンショットを `verify/screenshots/` に保存する。verifier はスクリーンショットを自分で開いて見た目も確認する。`browser.close()` は `finally` で必ず呼ぶ
 - **後片付けは必須。** 起動したサーバーは `verify/pids` の PID で停止する。起動前後の `git status` を比べ、生成物の差分が出ていれば blocking にする。resume は phase が `verification` のとき、残っている PID を停止する
 - **判定**: 1 つでも FAIL なら FAIL。環境起因で実行できないシナリオがあれば BLOCKED。FAIL は担当タスクの「Verification findings」に書いて 1 回だけ再実装し、BLOCKED はラウンドに数えない
-- 結果は人間レビューで提示し、pr-writer が PR 本文の「動作確認」に要約する。スクリーンショットは PR に添付しない
+- 結果は人間レビューで提示し、pr-writer が PR 本文の「動作確認」に要約する。PASS した UI シナリオは最終状態のスクリーンショット 1 枚を、履歴を持たない共有ブランチ `devflow-screenshots` に push し(作業ツリーと PR の diff には触れない)、commit sha 固定の URL で本文に貼る
 
 ## Wave と並列実装
 

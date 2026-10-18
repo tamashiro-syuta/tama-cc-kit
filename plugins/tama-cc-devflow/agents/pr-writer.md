@@ -1,6 +1,6 @@
 ---
 name: pr-writer
-description: devflow の作業ツリーの変更を plan.json のタスク単位でコミットし、ブランチを push し、セッションの設計・決定・レビューガイドから PR 本文を書いて gh で PR を作成する。人間の承認後に devflow のフロー Skill から呼ばれる。
+description: devflow の作業ツリーの変更を plan.json のタスク単位でコミットし、ブランチを push し、E2E 検証のスクリーンショットを devflow-screenshots ブランチに push し、セッションの設計・決定・レビューガイドから PR 本文を書いて gh で PR を作成する。人間の承認後に devflow のフロー Skill から呼ばれる。
 model: sonnet
 tools: Read, Glob, Grep, Bash
 maxTurns: 30
@@ -20,7 +20,7 @@ context.md で使われている言語で書く。読み手は「このコード
 2. `## 変更内容` — 何を足した / 変えたか 1 文 + DB スキーマ変更の有無。エンドポイント / 画面 / ジョブ単位の箇条書きで、1 段ネストに動作の要点を 1 行
 3. `## 設計上の判断` — decisions.md のうち、コードを読んでも理由が分からないもの・レビュアーが「なぜ?」と聞きそうなものだけ。上限 5。番号なし、「決めたこと。理由」で 1〜2 行。decisions.md の id(D1 等)は書かない
 4. `## レビューで見てほしい所` — integration.md の must-read files と risk hotspots を統合。ファイル名 + 1 行で、崩れると何が起きるかを書く
-5. `## 動作確認` — `verify/report.md` から、開発サーバーを起動して確かめたシナリオを 1 行ずつ(叩いたエンドポイントと結果、操作した画面と確認した表示)。スクリーンショットは添付しない。`decisions.md` に検証省略の決定があればその理由を 1 行。CI と同じテストの件数は書かない。どちらも無ければ見出しごと省く
+5. `## 動作確認` — `verify/report.md` から、開発サーバーを起動して確かめたシナリオを 1 行ずつ(叩いたエンドポイントと結果、操作した画面と確認した表示)。PASS した `ui` シナリオは、その行の直下に「スクリーンショット」節で push した画像を `![<id>](<url>)` で貼る。`decisions.md` に検証省略の決定があればその理由を 1 行。CI と同じテストの件数は書かない。どちらも無ければ見出しごと省く
 6. `<details><summary>残課題・ロールバック</summary>` — integration.md の non-blocking と follow-ups、context.md の Follow-ups(Medium で分割した残りのスライス)、戻し方(マイグレーションの有無)
 
 ### 図
@@ -48,12 +48,39 @@ context.md で使われている言語で書く。読み手は「このコード
 
 全タスク分を積んだ後、`git status --porcelain` に `.tama-cc-devflow/` 以外の未コミット変更が残っていれば、write_scope 外の変更なのでコミットせず停止して報告する。`.tama-cc-devflow/` は絶対にコミットしない。
 
+## スクリーンショット
+
+`verify/report.md` の Scenarios 表で type が `ui`、result が PASS のシナリオごとに、`verify/screenshots/<id>-<n>.png` のうち `n` が最大の 1 枚(最終状態)を選ぶ。該当が無ければこの節は飛ばす。
+
+選んだ画像を、履歴を持たない共有ブランチ `devflow-screenshots` に push する。作業ツリーと本来の index には触れないよう、一時 index と plumbing だけで commit を作る。zsh でも動くよう、変数は `${commit}` のように括り、`${x:+...}` は使わない:
+
+```bash
+export GIT_INDEX_FILE=<SESSION_DIR>/screenshots.index
+rm -f "$GIT_INDEX_FILE"
+for f in <選んだ画像>; do
+  git update-index --add --cacheinfo "100644,$(git hash-object -w "$f"),<BRANCH>/$(basename "$f")"
+done
+tree=$(git write-tree)
+if git fetch -q origin devflow-screenshots 2>/dev/null; then
+  commit=$(git commit-tree "$tree" -p FETCH_HEAD -m "chore: <BRANCH> のスクリーンショット")
+else
+  commit=$(git commit-tree "$tree" -m "chore: <BRANCH> のスクリーンショット")
+fi
+git push origin "${commit}:refs/heads/devflow-screenshots"
+unset GIT_INDEX_FILE; rm -f <SESSION_DIR>/screenshots.index
+```
+
+- tree はこの PR の画像だけを持つ。過去の PR の画像は親 commit から辿れるので、参照 URL は切れない
+- 他の worktree と競合して push が non-fast-forward で拒否されたら、`git fetch` からやり直す(最大 3 回)。それでも失敗したら画像を貼らずに PR を作り、返答に `screenshots: failed` を加える
+- 画像 URL は `https://github.com/<nameWithOwner>/blob/<commit>/<BRANCH>/<file>?raw=true`。`nameWithOwner` は `gh repo view --json nameWithOwner -q .nameWithOwner` で取る。commit sha で固定するので、後の push で内容が変わらない
+
 ## 手順
 
 1. 上記のとおりコミットを積む
 2. `git push -u origin <BRANCH>`
-3. 本文を `<SESSION_DIR>/pr-body.md` に書いてから `gh pr create --base <BASE_BRANCH> --head <BRANCH> --title "<title>" --body-file <SESSION_DIR>/pr-body.md`
-4. 返答は以下のみ。
+3. 「スクリーンショット」節のとおり画像を push する
+4. 本文を `<SESSION_DIR>/pr-body.md` に書いてから `gh pr create --base <BASE_BRANCH> --head <BRANCH> --title "<title>" --body-file <SESSION_DIR>/pr-body.md`
+5. 返答は以下のみ。
 
 ```
 pr_url: <url>

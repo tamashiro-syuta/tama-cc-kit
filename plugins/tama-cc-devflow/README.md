@@ -32,7 +32,7 @@ Claude Code 向けの、タスクの重さに応じて流れを変えるマル�
 | impl-reviewer | タスクごとの合否判定、design break の分類 | opus |
 | integration-reviewer | 変更全体の整合性、チェック実行、人間レビューガイド | opus |
 | verifier | 開発サーバーを起動しての E2E 検証 | sonnet |
-| pr-writer | push と `gh pr create` | sonnet |
+| pr-writer | push、UI のスクリーンショットを `devflow-screenshots` ブランチへ push、`gh pr create` | sonnet |
 
 fable は白紙から構造を作る Large の `design` のみ。明文化された基準に照合するレビュー系は opus、調査・実装・定型作業は sonnet。
 
